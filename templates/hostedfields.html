@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>Checkout - Your Store</title>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css">
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
+  <!-- Bootstrap core CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Material Design Bootstrap -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.19.1/css/mdb.min.css" rel="stylesheet">
+  <script src="https://js.braintreegateway.com/web/3.120.2/js/client.min.js"></script>
+  <script src="https://js.braintreegateway.com/web/3.120.2/js/hosted-fields.min.js"></script>
+  <style>
+    .settings-panel {
+      position: fixed;
+      right: -300px;
+      top: 0;
+      width: 300px;
+      height: 100vh;
+      background: white;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+      transition: right 0.3s ease;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .settings-panel.active {
+      right: 0;
+    }
+    .settings-toggle {
+      position: fixed;
+      right: 20px;
+      top: 20px;
+      z-index: 1001;
+    }
+    .settings-toggle.hide {
+      display: none !important;
+    }
+    .cart-item {
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+    }
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+    .settings-panel .list-group-item small {
+      display: block;
+      margin-bottom: 2px;
+    }
+    .settings-panel .list-group-item strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 1.1em;
+    }
+    .hosted-field {
+      height: 32px;
+      margin-bottom: 1em;
+      display: block;
+      background-color: transparent;
+      color: rgba(0, 0, 0, .87);
+      border: none;
+      border-bottom: 1px solid rgba(0, 0, 0, .26);
+      outline: 0;
+      width: 100%;
+      font-size: 16px;
+      padding: 0;
+      box-shadow: none;
+      border-radius: 0;
+      position: relative;
+    }
+    .custom-dropdown {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    font-family: Arial, sans-serif;
+    }
+
+    .dropdown-selected {
+      border: 1px solid #ccc;
+      padding: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #fff;
+    }
+
+    .dropdown-options {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      z-index: 10;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .dropdown-option {
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .dropdown-option:hover {
+      background-color: #f0f0f0;
+    }
+
+    .dropdown-option img {
+      width: 30px;
+      margin-right: 10px;
+    }
+
+    .card-details {
+      display: flex;
+      flex-direction: column;
+      margin-top: 10px;
+    }
+
+    .card-details input {
+      margin-bottom: 10px;
+      padding: 8px;
+      width: 100%;
+    }
+
+    .card-details button {
+      padding: 10px;
+    }
+  </style>
+</head>
+
+<body class="grey lighten-3">
+
+  <!-- Button: add id="settingsToggleBtn" -->
+  <button class="btn btn-info settings-toggle" id="settingsToggleBtn"">
+    <i class="fas fa-cog"></i> Sandbox Testing Info
+  </button>
+
+  <!-- Settings Panel -->
+  <div class="settings-panel" id="settingsPanel">
+    <h4 class="mb-4">Sandbox Testing</h4>
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Test Cards</h5>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item">
+            <small class="text-muted">Visa</small>
+            <strong>4111111111111111</strong>
+          </li>
+          <li class="list-group-item">
+            <small class="text-muted">Mastercard</small>
+            <strong>5555555555554444</strong>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Negative Testing</h5>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item">
+            <small class="text-muted">Do Not Honor</small>
+            <strong>2000</strong>
+          </li>
+          <li class="list-group-item">
+            <small class="text-muted">Insufficient Funds</small>
+            <strong>2001</strong>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <button class="btn btn-success btn-block mb-2" id="loginBtn" type="button">Login As Member</button>
+    <button class="btn btn-outline-danger btn-block" id="settingsCloseBtn"">Close</button>
+  </div>
+
+  <!-- Main Content -->
+  <main class="mt-5 pt-4">
+    <div class="container">
+      <h2 class="mb-4">BT - HostedFields - Steven Test Store </h2>
+      <div class="row">
+        <!-- Left Column - Shipping & Payment -->
+        <div class="col-md-8">
+          <!-- Shipping Information -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Delivery</h5>
+            </div>
+            <div class="card-body">
+              <form id="shipping-form">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="firstName">First name</label>
+                    <input type="text" class="form-control" id="firstName" required>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="lastName">Last name</label>
+                    <input type="text" class="form-control" id="lastName" required>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="email">Email</label>
+                  <input type="email" class="form-control" id="email" placeholder="you@example.com">
+                </div>
+                <div class="mb-3">
+                  <label for="address">Address</label>
+                  <input type="text" class="form-control" id="address" placeholder="1234 Main St" required>
+                </div>
+                <div class="mb-3">
+                  <label for="address2">Address 2 <span class="text-muted">(Optional)</span></label>
+                  <input type="text" class="form-control" id="address2" placeholder="Apartment or suite">
+                </div>
+                <div class="row">
+                  <div class="col-md-5 mb-3">
+                    <label for="country">Country</label>
+                    <select class="custom-select d-block w-100" id="country" required>
+                      <option value="">Choose...</option>
+                      <option>United States</option>
+                      <option>Singapore</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label for="state">State</label>
+                    <select class="custom-select d-block w-100" id="state" required>
+                      <option value="">Choose...</option>
+                      <option>California</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3 mb-3">
+                    <label for="zip">Zip</label>
+                    <input type="text" class="form-control" id="zip" required>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Payment Section -->
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">Payment</h5>
+            </div>
+            <!-- Pay with stored cards section -->
+            <div id="stored-cards-container" class="card-body" style="display: none;""></div>
+            
+            <!-- Pay with new card section -->
+            <div class="card-body">
+              <div id="pay-with-new-card-container">
+                <div id="hosted-fields-container">
+                  <label for="card-number">Card Number</label>
+                  <div id="card-number" class="hosted-field"></div>
+            
+                  <label for="cvv">CVV</label>
+                  <div id="cvv" class="hosted-field"></div>
+            
+                  <label for="expiration-date">Expiration Date</label>
+                  <div id="expiration-date" class="hosted-field"></div>
+                </div>
+                  <div id="store-in-vault-checkbox-container"></div>
+                  <button id="submit-button" class="btn btn-primary" style="display: none;">Purchase</button>
+              </div>
+            </div>
+            <!-- Add Payment Summary Block -->
+            <div id="paymentSummary" class="mt-4" style="display: none;">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="mb-0">Payment Summary</h5>
+                </div>
+                <div class="card-body">
+                  <div id="paymentSuccess" style="display: none;">
+                    <div class="alert alert-success">
+                      <h6 class="alert-heading">Payment Successful!</h6>
+                      <div class="payment-details mt-3">
+                        <p><strong>Transaction ID:</strong> <span id="transactionId"></span></p>
+                        <p><strong>Order ID:</strong> <span id="orderId"></span></p>
+                        <p><strong>Amount:</strong> <span id="paymentAmount"></span></p>
+                        <p><strong>Date:</strong> <span id="paymentDate"></span></p>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="paymentError" style="display: none;">
+                    <div class="alert alert-danger">
+                      <h6 class="alert-heading">Payment Failed</h6>
+                      <div class="payment-details mt-3">
+                        <p><strong>Error:</strong> <span id="errorMessage"></span></p>
+                        <p><strong>Order ID:</strong> <span id="errorOrderId"></span></p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column - Order Summary -->
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">Order Summary</h5>
+            </div>
+            <div class="card-body">
+              <div class="cart-items" id="cartItems">
+                <div class="cart-item d-flex align-items-center">
+                  <img src="https://i.ibb.co/C31JT2x4/brown-wallet-test.png" class="mr-3 rounded" alt="ABC Wallet" style="width:48px;height:48px;">
+                  <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <strong id="item1Name">ABC Wallet - Dark Chocolate</strong>
+                      </div>
+                      <span id="item1Price" class="font-weight-bold">$99.95</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="cart-item d-flex align-items-center">
+                  <img src="https://i.ibb.co/vSTxt8R/red-sandal-test.png" class="mr-3 rounded" alt="ABC Sandal" style="width:48px;height:48px;">
+                  <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <strong id="item2Name">ABC Unisex Sandal - Red</strong>
+                      </div>
+                      <span id="item2Price" class="font-weight-bold">$99.95</span>		
+					</div>
+                  </div>
+                </div>
+              </div>
+              <hr>
+              <div class="d-flex justify-content-between align-items-end">
+                <div class="font-weight-bold" style="font-size:1.1em;">Total</div>
+                <div style="display:flex; align-items:center;">
+                  <span style="font-size:1.1em; margin-right:6px;">EUR</span>
+                  <input id="totalInput" type="text" inputmode="decimal" pattern="^\\d*(\\.\\d{0,2})?$" value="199.90" style="font-size:1.1em; font-weight:bold; width:100px; text-align:right; border:1px solid #ccc; border-radius:4px; background:#fff; outline:none; padding:2px 8px; transition:border 0.2s;" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.4/umd/popper.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.19.1/js/mdb.min.js"></script>
+  <script>    
+    // Configuration and State Management
+    const AppState = {
+      clientInst: null,
+      hostedFieldsInst: null,
+      hostedFieldsInstCVVOnly: null,
+      guestOrMemberflow: 'guest',
+      customerId: null,
+      storeInVault: false
+    };
+
+    // UI Components
+    const UI = {
+      elements: {
+        submitButton: document.querySelector('#submit-button'),
+        paymentSummary: document.querySelector('#paymentSummary'),
+        paymentSuccess: document.querySelector('#paymentSuccess'),
+        paymentError: document.querySelector('#paymentError'),
+        totalInput: document.querySelector('#totalInput'),
+        settingsPanel: document.querySelector('#settingsPanel'),
+        settingsToggleBtn: document.querySelector('#settingsToggleBtn'),
+        settingsCloseBtn: document.querySelector('#settingsCloseBtn'),
+        loginBtn: document.querySelector('#loginBtn'),
+        storeInVaultCheckboxContainer: document.querySelector('#store-in-vault-checkbox-container'),
+        storedCardsContainer: document.querySelector('#stored-cards-container'),
+        payWithNewCardContainer: document.querySelector('#pay-with-new-card-container'),
+        cvvOnlyContainer: document.querySelector('#cvv-only'),
+        payWithStoredCardBtn: document.querySelector('#pay-with-stored-card-btn'),
+        payWithNewCardH5: document.querySelector('#pay-with-new-card-h5')
+      },
+
+      toggleSettings() {
+        this.elements.settingsPanel.classList.toggle('active');
+        this.elements.settingsToggleBtn.classList.toggle('hide');
+      },
+
+      showPaymentSummary() {
+        this.elements.paymentSummary.style.display = 'block';
+      },
+
+      showSuccess(data) {
+        this.elements.paymentSuccess.style.display = 'block';
+        this.elements.paymentError.style.display = 'none';
+        
+        document.querySelector('#transactionId').textContent = data.transaction_id;
+        document.querySelector('#orderId').textContent = data.order_id;
+        document.querySelector('#paymentAmount').textContent = `$${data.amount}`;
+        document.querySelector('#paymentDate').textContent = new Date().toLocaleString();
+      },
+
+      showError(data) {
+        this.elements.paymentSuccess.style.display = 'none';
+        this.elements.paymentError.style.display = 'block';
+        
+        document.querySelector('#errorMessage').textContent = data.error_message || 'Payment processing failed';
+        document.querySelector('#errorOrderId').textContent = data.order_id || 'N/A';
+      }
+    };
+
+    // Payment Processing
+    const PaymentProcessor = {
+      async processPayment(payload, selectedToken = null) {
+        const totalAmount = UI.elements.totalInput.value;
+        
+        const requestData = {
+          payment_method_nonce: payload.nonce,
+          amount: totalAmount,
+          customerId: AppState.customerId? AppState.customerId : null,
+          storeInVault: AppState.storeInVault,
+          pmtToken: selectedToken? selectedToken : null
+        };
+
+        try {
+          console.log('Processing payment...');
+          console.log('requestData: ', requestData);
+          const response = await fetch('/createPayment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to create payment');
+          }
+
+          const data = await response.json();
+          console.log('response: ', data);
+          
+          UI.showPaymentSummary();
+
+          if (data.success) {
+            UI.showSuccess(data);
+          } else {
+            UI.showError(data);
+            if (data.error_type === 'validation') {
+              UI.elements.submitButton.disabled = false;
+            }
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          UI.showPaymentSummary();
+          UI.showError({ error_message: error.message });
+          UI.elements.submitButton.disabled = false;
+        }
+      },
+      async fetchClientTokenAndStoredPMTsForMemberFlow(customerId) {
+        const requestData = {
+          custId: customerId
+        };
+
+        try {
+          console.log('Fetching ClientToken (member flow) & retrieving stored PMTs...');
+          console.log('requestData: ', requestData);
+          const response = await fetch('/createCTAndFetchPMTs', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to createCTAndFetchPMTs');
+          }
+
+          const data = await response.json();
+          console.log('result: ', data);
+          data.clientToken = data.clientToken;
+          return data;
+        } catch (error) {
+          console.error('Error:', error);
+          UI.showPaymentSummary();
+          UI.showError({ error_message: error.message });
+          UI.elements.submitButton.disabled = false;
+        }
+      }
+    };
+
+    // Braintree Integration
+    const BraintreeIntegration = {
+      async initialize(clientToken,storedPMTs=null) {
+        try {
+          console.log('Initializing BT Client...');
+          console.log('flow: %s, customerId: %s', AppState.guestOrMemberflow, AppState.customerId);
+          console.log('clientToken: ', clientToken);
+          const clientInstance = await braintree.client.create({
+            authorization: clientToken
+          });
+          AppState.clientInst = clientInstance;
+          console.log('Initialized BT Client...');
+          
+          console.log('Initializing BT Hosted Fields...');
+          
+          if (UI.elements.payWithNewCardH5) {
+            UI.elements.payWithNewCardH5.remove();
+          }
+          
+          if (storedPMTs) {
+            const h5 = document.createElement('h5');
+            h5.textContent = 'Pay with new card';
+            h5.style.marginBottom = '10px';
+            h5.style.marginTop = '15px';
+            h5.style.fontWeight = 'bold';
+            h5.id = 'pay-with-new-card-h5';
+            UI.elements.payWithNewCardContainer.parentElement.insertBefore(h5, UI.elements.payWithNewCardContainer);
+          }
+
+          const hostedFieldsInstance = await this.initializeHostedFields(clientInstance);
+          AppState.hostedFieldsInst = hostedFieldsInstance;
+          console.log('Initialized BT Hosted Fields...');
+
+          this.setupCheckboxForStoreInVault();
+          this.setupSubmitButton(hostedFieldsInstance);
+          if (storedPMTs) {
+            console.log('Initializing BT Hosted Fields CVV Only...');
+            //create h5 titled "Pay with stored card", bold
+            const h5 = document.createElement('h5');
+            h5.textContent = 'Pay with stored card';
+            h5.style.marginBottom = '10px';
+            h5.style.fontWeight = 'bold';
+            UI.elements.storedCardsContainer.appendChild(h5);
+
+            //create a div for the cvv-only container
+            const cvvOnlyContainer = document.createElement('div');
+            cvvOnlyContainer.id = 'cvv-only';
+            cvvOnlyContainer.style.display = 'none';
+            cvvOnlyContainer.classList.add('hosted-field');
+            UI.elements.storedCardsContainer.appendChild(cvvOnlyContainer);
+
+            const hostedFieldsInstanceCVVOnly = await this.initializeHostedFieldsCVVOnly(clientInstance);
+            AppState.hostedFieldsInstCVVOnly = hostedFieldsInstanceCVVOnly;
+            console.log('Initialized BT Hosted Fields CVV Only...');
+            this.setupStoredCardsDropdown(storedPMTs, cvvOnlyContainer);
+          }
+        } catch (error) {
+          console.error('Error initializing Braintree:', error);
+        }
+      },
+
+      async initializeHostedFields(clientInstance) {
+        const hostedFieldsOptions = {
+          client: clientInstance,
+          styles: {
+            'input': {
+              'font-size': '14px'
+            },
+            'input.invalid': {
+              'color': 'red'
+            },
+            'input.valid': {
+              'color': 'green'
+            }
+          },
+          fields: {
+            number: {
+              container: '#card-number',
+              placeholder: '4111 1111 1111 1111'
+            },
+            cvv: {
+              container: '#cvv',
+              placeholder: '123'
+            },
+            expirationDate: {
+              container: '#expiration-date',
+              placeholder: 'MM/YY'
+            }
+          }
+        };
+
+        return await braintree.hostedFields.create(hostedFieldsOptions);
+      },
+
+      async initializeHostedFieldsCVVOnly(clientInstance) {
+        const hostedFieldsOptions = {
+          client: clientInstance,
+          styles: {
+            'input': {
+              'font-size': '14px'
+            },
+            'input.invalid': {
+              'color': 'red'
+            },
+            'input.valid': {
+              'color': 'green'
+            }
+          },
+          fields: {
+            cvv: {
+              container: '#cvv-only',
+              placeholder: '123'
+            }
+          }
+        };
+
+        return await braintree.hostedFields.create(hostedFieldsOptions);
+      },
+
+      setupCheckboxForStoreInVault() {
+        //check if it is member flow or guest flow
+        console.log('Setting up store-in-vault checkbox for member flow. AppState.guestOrMemberflow: ', AppState.guestOrMemberflow);
+        if (AppState.guestOrMemberflow === 'member') {
+          // Add a checkbox for storing in vault
+          const storeInVaultCheckbox = document.createElement('input');
+          storeInVaultCheckbox.type = 'checkbox';
+          storeInVaultCheckbox.id = 'storeInVault';
+          storeInVaultCheckbox.name = 'storeInVault';
+          storeInVaultCheckbox.addEventListener('change', (e) => {
+            AppState.storeInVault = e.target.checked; 
+          });
+          storeInVaultCheckbox.checked = false;
+          UI.elements.storeInVault = storeInVaultCheckbox;
+
+          // Create the label for the checkbox
+          const labelForStoreInVault = document.createElement("label");
+          labelForStoreInVault.htmlFor = "storeInVault";
+          labelForStoreInVault.textContent = " Save for future purchase";
+          labelForStoreInVault.style.marginLeft = '10px';
+
+          // Wrap checkbox and label in a container div
+          const checkboxContainer = UI.elements.storeInVaultCheckboxContainer;
+          checkboxContainer.appendChild(storeInVaultCheckbox);
+          checkboxContainer.appendChild(labelForStoreInVault);
+        } else {
+          //remove the storeInVaultCheckboxContainer children
+          while (UI.elements.storeInVaultCheckboxContainer.firstChild) {
+            UI.elements.storeInVaultCheckboxContainer.removeChild(UI.elements.storeInVaultCheckboxContainer.firstChild);
+          }
+        }
+      },
+
+      setupStoredCardsDropdown(storedPMTs, cvvOnlyContainer) {
+        if (storedPMTs && storedPMTs.length > 0) {
+          UI.elements.storedCardsContainer.style.display = 'block';
+          cvvOnlyContainer.style.display = 'block';
+
+          // Custom dropdown wrapper
+          const dropdown = document.createElement('div');
+          dropdown.className = 'custom-dropdown';
+
+          // Selected display
+          const selected = document.createElement('div');
+          selected.className = 'dropdown-selected';
+          selected.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <div>
+                <img src="${storedPMTs[0].imageUrl}" alt="Card logo" width="30">
+                <span>${storedPMTs[0].maskedNumber} (Exp: ${storedPMTs[0].expirationDate})</span>
+              </div>
+              <i class="fas fa-chevron-down" style="margin-left: 10px;"></i>
+            </div>
+          `;
+          dropdown.appendChild(selected);
+
+          // Options list
+          const options = document.createElement('div');
+          options.className = 'dropdown-options';
+
+          storedPMTs.forEach((pmt) => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-option';
+            option.dataset.token = pmt.token;
+            option.dataset.imageUrl = pmt.imageUrl;
+            option.innerHTML = `
+              <img src="${pmt.imageUrl}" alt="Card logo">
+              <span>${pmt.maskedNumber} (Exp: ${pmt.expirationDate})</span>
+            `;
+            options.appendChild(option);
+          });
+
+          dropdown.appendChild(options);
+          UI.elements.storedCardsContainer.insertBefore(dropdown, cvvOnlyContainer);
+
+          //create label for cvv-only container
+          const cvvOnlyLabel = document.createElement('label');
+          cvvOnlyLabel.textContent = 'CVV';
+          cvvOnlyLabel.style.display = 'block';
+          cvvOnlyLabel.style.marginBottom = '10px';
+          cvvOnlyLabel.style.marginTop = '15px';
+          cvvOnlyLabel.setAttribute('for', 'cvv-only');
+          UI.elements.storedCardsContainer.insertBefore(cvvOnlyLabel, cvvOnlyContainer);
+
+          //Pay button
+          const payButton = document.createElement('button');
+          payButton.id = 'pay-with-stored-card-btn';
+          payButton.textContent = 'Pay with stored card';
+          payButton.classList.add('btn');
+          payButton.classList.add('btn-primary');
+          UI.elements.storedCardsContainer.appendChild(payButton);
+
+          // Toggle dropdown
+          selected.addEventListener('click', () => {
+            options.style.display = options.style.display === 'block' ? 'none' : 'block';
+          });
+
+          // Track selected token
+          let selectedToken = storedPMTs[0].token;
+
+          // Handle selection
+          options.querySelectorAll('.dropdown-option').forEach((opt) => {
+            opt.addEventListener('click', () => {
+              const img = opt.querySelector('img').src;
+              const label = opt.querySelector('span').textContent;
+
+              selected.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                  <div>
+                    <img src="${img}" alt="Card logo" width="30">
+                    <span>${label}</span>
+                  </div>
+                  <i class="fas fa-chevron-down" style="margin-left: 10px;"></i>
+                </div>
+              `;
+              options.style.display = 'none';
+              selectedToken = opt.dataset.token;
+              console.log('Selected token: ', selectedToken);
+            });
+          });
+
+          // Handle pay button
+          payButton.addEventListener('click', async () => {
+            payButton.disabled = true;
+            console.log('Selected token:', selectedToken);
+            try {
+              console.log('Tokenizing CVV only...');
+              var tokenizeOptions = {};
+              console.log('tokenizeOptions: ', tokenizeOptions);
+              const tokenizePayload = await AppState.hostedFieldsInstCVVOnly.tokenize(tokenizeOptions);
+              console.log('tokenizePayload: ', tokenizePayload);
+              await PaymentProcessor.processPayment(tokenizePayload, selectedToken);
+            } catch (error) {
+              console.error('Error:', error);
+              payButton.disabled = false;
+            }
+          });
+
+        }
+      },
+
+      setupSubmitButton(hostedFieldsInstance) {
+        UI.elements.submitButton.style.display = 'block';
+        
+        // check if button listener is already set, if yes, remove it
+        if (this.submitClickHandler) {
+          UI.elements.submitButton.removeEventListener('click', this.submitClickHandler);
+        }
+        this.submitClickHandler = async () => {
+          UI.elements.submitButton.disabled = true;
+          
+          try {
+            console.log('Tokenizing fields...');
+            var tokenizeOptions = {};
+            console.log('tokenizeOptions: ', tokenizeOptions);
+            const tokenizePayload = await hostedFieldsInstance.tokenize(tokenizeOptions);
+            console.log('tokenizePayload: ', tokenizePayload);
+            await PaymentProcessor.processPayment(tokenizePayload);
+          } catch (error) {
+            console.error('Error:', error);
+            UI.elements.submitButton.disabled = false;
+          }
+        }
+        UI.elements.submitButton.addEventListener('click', this.submitClickHandler);
+      }
+    };
+
+    // Order Summary Management
+    const OrderSummary = {
+      init() {
+        this.setupTotalInput();
+      },
+
+      setupTotalInput() {
+        UI.elements.totalInput.addEventListener('input', (e) => {
+          let val = e.target.value;
+          val = val.replace(/[^\d.]/g, '');
+          
+          const parts = val.split('.');
+          if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+          if (parts[1]) val = parts[0] + '.' + parts[1].slice(0,2);
+          
+          e.target.value = val;
+          const total = parseFloat(val);
+          
+          if (isNaN(total) || total <= 0) {
+            e.target.style.border = '2px solid #e74c3c';
+            return;
+          }
+          
+          e.target.style.border = '1px solid #ccc';
+          const split = (total / 2).toFixed(2);
+          document.querySelector('#item1Price').textContent = `$${split}`;
+          document.querySelector('#item2Price').textContent = `$${split}`;
+        });
+      }
+    };
+
+    // Shipping Form Management
+    const ShippingForm = {
+      prepopulate() {
+        const fields = {
+          'firstName': 'John',
+          'lastName': 'Doe',
+          'email': 'john.doe@example.com',
+          'address': '123 Main Street',
+          'address2': 'Apt 4B',
+          'country': 'United States',
+          'state': 'California',
+          'zip': '12345'
+        };
+
+        Object.entries(fields).forEach(([id, value]) => {
+          const element = document.getElementById(id);
+          if (element) element.value = value;
+        });
+      }
+    };
+
+    // Main Application Initialization
+    async function initializeApp() {
+      OrderSummary.init();
+      ShippingForm.prepopulate();
+      UI.elements.settingsToggleBtn.addEventListener('click', () => UI.toggleSettings());
+      UI.elements.settingsCloseBtn.addEventListener('click', () => UI.toggleSettings());
+      UI.elements.loginBtn.addEventListener('click', handleLogin);
+      
+      const clientToken = '{{clientToken}}';
+      await BraintreeIntegration.initialize(clientToken);
+    }
+
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', initializeApp);
+    
+
+    async function handleLogin() {
+      AppState.guestOrMemberflow = 'member';
+      AppState.customerId = 'test-member-123';
+      console.log('Assumed logged in as member: ', AppState.customerId);
+
+      //if (AppState.hostedFieldsInst && AppState.hostedFieldsInst.teardown) {
+      if (AppState.clientInst) {
+        console.log('Tearing down BT Client...');
+        await AppState.clientInst.teardown();
+        AppState.clientInst = null;
+        console.log('BT Client torn down...');
+      }
+
+      if (AppState.hostedFieldsInst) {
+        console.log('Tearing down BT hostedFieldsInst...');
+        await AppState.hostedFieldsInst.teardown();
+        AppState.hostedFieldsInst = null;
+        console.log('BT hostedFieldsInst torn down...');
+      }
+
+      if (AppState.hostedFieldsInstCVVOnly) {
+        console.log('Tearing down BT hostedFieldsInstCVVOnly...');
+        await AppState.hostedFieldsInstCVVOnly.teardown();
+        AppState.hostedFieldsInstCVVOnly = null;
+        console.log('BT hostedFieldsInstCVVOnly torn down...');
+      }
+
+      const data = await PaymentProcessor.fetchClientTokenAndStoredPMTsForMemberFlow(AppState.customerId);
+
+      await BraintreeIntegration.initialize(data.clientToken, data.storedPMTs);
+
+      console.log('Logged in as member! Hosted fields re-initialized.');
+    }
+  </script>
+</body>
+
+</html>

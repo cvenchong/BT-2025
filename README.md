@@ -1,12 +1,15 @@
-# Braintree Drop-in Demo
+# Braintree Hosted Fields Demo
 
-A simple Flask app demonstrating Braintree Drop-in integration for payments.
+A simple Flask app demonstrating Braintree Hosted Fields integration for payments.
 
 ## Features
 
-- Braintree Drop-in UI for card payments
+- Braintree Hosted Fields UI for card payments
 - Provided sandbox test cards and negative testing info for ease of testing (available at the UI sidebar)
-- Total amount can be modified
+- Total amount can be modified before making payment (negative testing)
+- at the UI side bar, can login to simulate member flow
+   * you can simulate CIT flow, CIT to save card flow & Vaulted CIT flow
+
 
 ## Requirements
 

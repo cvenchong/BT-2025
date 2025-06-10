@@ -1,3 +1,4 @@
+import braintree.credit_card
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from flask_cors import CORS
 import braintree
@@ -29,15 +30,73 @@ TRANSACTION_SUCCESS_STATUSES = [
 ]
 
 @app.route("/", methods=["GET"])
-def index():
+def indexHeadless():
     clientToken = getClientToken()
-    return render_template("checkout-page.html", clientToken=clientToken)
+    return render_template("hostedfields.html", clientToken=clientToken)
 
-def getClientToken():
-    clientToken = gateway.client_token.generate({
-		#"customer_id": customerId,
+# @app.route("/dropin-guest", methods=["GET"])
+# def indexDropin():
+#     clientToken = getClientToken()
+#     return render_template("dropin.html", clientToken=clientToken)
+
+@app.route("/createCTAndFetchPMTs", methods=["POST"])
+def createCTAndFetchPMTs():
+    data = request.get_json()
+    print("Received JSON:", data)  # Print the whole payload
+    custId = data["custId"]
+
+    if not findCustomer(custId):
+        createCustomerAccount(custId)
+ 
+    clientToken = getClientToken(custId)
+    storedPMTs = getStoredPMTs(custId)
+
+    return jsonify({
+            "success": True,
+            "clientToken": clientToken,
+            "storedPMTs": storedPMTs
+        })
+
+def getStoredPMTs(customerId):
+    print("Fetching stored PMTs for customer: " + customerId)
+    result = gateway.customer.find(customerId)
+    print("Customer: ", result)
+    return constructPMTList(result.payment_methods)
+
+def constructPMTList(paymentMethods):
+    pmtList = []
+    for pmt in paymentMethods:
+        if pmt.__class__ == braintree.credit_card.CreditCard:
+            pmtList.append({
+                "token": pmt.token,
+                "uiCategory": pmt.card_type,
+                "maskedNumber": pmt.masked_number, 
+                "expirationDate": pmt.expiration_date,
+                "expired": pmt.expired,
+                "imageUrl": pmt.image_url,
+                "uniqueNumberIdentifier": pmt.unique_number_identifier
+            })
+
+        #TODO: add other payment method types here
+        # elif pmt.__class__ == braintree.paypal_account.PayPalAccount:
+        # elif pmt.__class__ == braintree.apple_pay_card.ApplePayCard:
+        # elif pmt.__class__ == braintree.android_pay_card.AndroidPayCard:
+
+        else:
+            print("Unknown payment method type: ", pmt.type)
+            continue
+                
+    return pmtList
+
+def getClientToken(customerId=None):
+    token_params = {
         "merchant_account_id": "stevenchongEUR",
-    })
+    }
+    
+    if customerId:
+        token_params["customer_id"] = customerId
+        
+    clientToken = gateway.client_token.generate(token_params)
     print("Client token created: ")
     print(clientToken)
     return clientToken
@@ -45,14 +104,17 @@ def getClientToken():
 @app.route("/createPayment", methods=["POST"])
 def createPayment():
     data = request.get_json()
+    print("Received JSON:", data)  # Print the whole payload
     nonce_from_the_client = data["payment_method_nonce"]
-    print("nonce: " + nonce_from_the_client) 
     amount = data["amount"]
+    customerId = data.get("customerId")  # Safe access
+    storeInVault = data.get("storeInVault")  # Safe access
+    pmtToken = data.get("pmtToken")
 
-    return createTransaction(nonce_from_the_client, amount)
+    return createTransaction(nonce_from_the_client, amount, customerId, storeInVault, pmtToken)
 
-def createTransaction(nonce_from_the_client, amount):
-    tranReq = transactionSaleRequest(nonce_from_the_client, amount)
+def createTransaction(nonce_from_the_client, amount, customerId=None, storeInVault=False, pmtToken=None):
+    tranReq = transactionSaleRequest(nonce_from_the_client, amount, customerId, storeInVault, pmtToken)
     orderId = tranReq["order_id"]
     result = gateway.transaction.sale(tranReq)
     if result.is_success:
@@ -89,16 +151,26 @@ def createTransaction(nonce_from_the_client, amount):
             "error_type": "validation"
         })
 
-def transactionSaleRequest(nonce_from_the_client, amount):
+def transactionSaleRequest(nonce_from_the_client, amount, customerId=None, storeInVault=False, pmtToken=None):
     baseOb = {
         "amount": amount,
         "payment_method_nonce": nonce_from_the_client,
         "order_id": str(uuid.uuid1()),
         "options": {
-            "submit_for_settlement": True,
-#		    "store_in_vault_on_success": False
+            "submit_for_settlement": True
         }
     }
+
+    if customerId is not None:
+        baseOb["customer_id"] = customerId  
+
+    if storeInVault:
+        baseOb["options"]["store_in_vault_on_success"] = True
+
+    if pmtToken is not None:
+        baseOb["payment_method_token"] = pmtToken
+
+
     print ("Transaction request obj: ")
     print (baseOb)
     return baseOb
@@ -134,44 +206,42 @@ def errorProcessingPage(orderId):
 #    return result
 
 
-# def findCustomer(customerId):
-#     print("checking existance of customer id: " + customerId)
-#     try:    
-#         customer = gateway.customer.find(customerId)
-#         print("  customer id {} found!".format(customerId))
-#         return True
-#     except braintree.exceptions.not_found_error.NotFoundError as e:
-#         print("  customer id {} NOT found!".format(customerId))
-#         return False
+def findCustomer(customerId):
+    print("checking existance of customer id: " + customerId)
+    try:    
+        customer = gateway.customer.find(customerId)
+        print("  customer id {} found!".format(customerId))
+        return True
+    except braintree.exceptions.not_found_error.NotFoundError as e:
+        print("  customer id {} NOT found!".format(customerId))
+        return False
 
-# def createCustomerAccount(cid):
-#     global customerId
-#     print("creating new customer: ")
-#     randomSuffix = str(uuid.uuid4())[:8]
-#     result = gateway.customer.create({
-#         "first_name": cid + randomSuffix,
-#         "last_name": cid + randomSuffix,
-#         "company": "Braintree",
-#         "email": "jen@example.com",
-#         "phone": "312.555.1234",
-#         "fax": "614.555.5678",
-#         "website": "www.example.com",
-#         "id": cid
-#     })
-#     if result.is_success: 
-#         print("  customer id {} created!".format(result.customer.id))
-#         customerId = result.customer.id
-#         print("  global customer id changed to {}".format(result.customer.id))
-#         return result.customer.id
-#     else:
-#     #TODO: when have time, try to see how to properly handle. Now just assume always successful
-#         print("  customer id {} NOT created!".format(cid))
-#         raise Exception('User creation failed. Unknown error. cid {}, suffix {}'.format(cid, randomSuffix))
+def createCustomerAccount(cid):
+    print("creating new customer: ")
+    result = gateway.customer.create({
+        "first_name": 'custFirstName',
+        "last_name": 'custLastName',
+        "company": "Braintree",
+        "email": "jen@example.com",
+        "phone": "312.555.1234",
+        "fax": "614.555.5678",
+        "website": "www.example.com",
+        "id": cid
+    })
+    if result.is_success: 
+        print("  customer id {} created!".format(result.customer.id))
+        print("  global customer id changed to {}".format(result.customer.id))
+        return result.customer.id
+    else:
+    #TODO: when have time, try to see how to properly handle. Now just assume always successful
+        print("  customer id {} NOT created!".format(cid))
+        raise Exception('User creation failed. Unknown error. cid {}'.format(cid))
 
 
 
 # Run the backend app
 if __name__ == "__main__":
-    app.run(debug=True)
+#    app.run(debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=True)
 #    app.run(debug=True, host="0.0.0.0", port=50000)
 
