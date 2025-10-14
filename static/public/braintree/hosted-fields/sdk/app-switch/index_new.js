@@ -103,12 +103,12 @@ async function initBT() {
                 return paypalCheckoutInstance.tokenizePayment(data).then(function (payload) {
                   console.log( 'tokenizePayment returned payload: ' + JSON.stringify(payload, null, 2));
                   // Submit payload.nonce to your server
-                  fetch('/api/payments/paypal/checkout', {
+                  return fetch('/api/payments/paypal/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       paymentMethodNonce: payload.nonce,
-                      merchantAccountId: maid || null,
+                      merchantAccountId: merchantAccountId || null,
                       amount: amount,
                       payerId: payload.details.payerId,
                       deviceData: state.deviceDataInstance ? state.deviceDataInstance.deviceData : null,
@@ -120,9 +120,11 @@ async function initBT() {
 
                     })
                   }).then(function(response){ 
-                    console.log( 'Server response: ', response);
+                    return response.json(); // Parse the JSON from the response
+                  }).then(function(data) {
+                    console.log( 'Server response: ', data);
                   }).catch(function(err){
-                    console.logError( 'Error sending nonce to server', err);
+                    console.error( 'Error sending nonce to server', err);
                   });
                 });
             },
