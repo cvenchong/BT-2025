@@ -9,34 +9,49 @@
       src="https://js.braintreegateway.com/web/3.125.0/js/paypal-checkout.min.js"
     ></script>
   </head>
-  <body>
-    <h1>App Switch</h1>
-    <a href="/">Main Page</a>
+  <body style="margin:0;padding:0;">
+    <div style="display:flex;flex-direction:column;height:100vh;">
+      <div style="flex:0 0 auto;">
+        <h1>App Switch</h1>
+        <a href="/">Main Page</a>
 
-    <hr />
+        <hr />
 
-    <h2>Eligibility</h2>
-    <ul>
-      <li>Available for buyers and sellers in the <strong>United States only</strong>.</li>
-      <li>App switch is available with One-time payments and Vaulted payments in <strong>Pay Now flows only</strong>.</li>
-      <li>App Switch does not work with the following JavaScript SDK features:
+        <h2>Eligibility</h2>
         <ul>
-          <li><code>onShippingChange</code></li>
-          <li><code>onShippingAddressChange</code></li>
-          <li><code>onShippingOptionsChange</code></li>
+          <li>Available for buyers and sellers in the <strong>United States only</strong>.</li>
+          <li>App switch is available with One-time payments and Vaulted payments in <strong>Pay Now flows only</strong>.</li>
+          <li>App Switch does not work with the following JavaScript SDK features:
+            <ul>
+              <li><code>onShippingChange</code></li>
+              <li><code>onShippingAddressChange</code></li>
+              <li><code>onShippingOptionsChange</code></li>
+            </ul>
+          </li>
+          <li>App Switch doesn't work with iframes. Running the Javascript SDK in an iframe will block App Switch capabilities.</li>
         </ul>
-      </li>
-      <li>App Switch doesn't work with iframes. Running the Javascript SDK in an iframe will block App Switch capabilities.</li>
-    </ul>
 
-    <hr />
+        <hr />
 
-    <div id="paypal-button"></div>
+        <div id="paypal-button"></div>
 
-    <hr />
+        <hr />
 
-    <p id="feedback"></p>
-    <p id="error"></p>
+        <p id="feedback"></p>
+        <p id="error"></p>
+      </div>
+      <div id="log-section" style="
+        flex:1 1 auto;
+        overflow-y:auto;
+        background:#222;
+        color:#eee;
+        padding:10px;
+        border-radius:6px;
+        font-size:0.95em;
+        margin-top:20px;
+        min-height:0;
+      "></div>
+    </div>
 
     <script src="/static/public/braintree/hosted-fields/sdk/app-switch/index_new.js"></script>
   </body>
