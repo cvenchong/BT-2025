@@ -181,7 +181,7 @@ async function initBT() {
           // To trigger completion of the flow, execute the code below after re-instantiating buttons
           if (button.hasReturned()) {
             button.resume();
-            console.log("App switch completed => button.resume() is called."); 
+            console.log("App switch completed => button.resume() is called.."); 
 
           } else {
             button.render('#paypal-button').then(function () {
