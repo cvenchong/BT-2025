@@ -103,14 +103,14 @@ async function initBT() {
       authorization: clientToken
     }).then(function (clientInstance) {
       state.btClient = clientInstance;
-      console.log("Braintree Client Instance: ", clientInstance);
+      //console.log("Braintree Client Instance: ", clientInstance);
           // Create a PayPal Checkout component.
        return braintree.paypalCheckout.create({
           client: clientInstance
         });
     }).then(function (paypalCheckoutInstance) {
       state.btPayPalInstance = paypalCheckoutInstance;
-      console.log("PayPal Checkout Instance: ", paypalCheckoutInstance);
+      //console.log("PayPal Checkout Instance: ", paypalCheckoutInstance);
         // Base PayPal SDK script options
         var loadPayPalSDKOptions = {
           currency: currencyCode, // Must match the currency passed in with createPayment
