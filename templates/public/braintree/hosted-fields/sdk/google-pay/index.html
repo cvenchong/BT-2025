@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Google Pay</title>
+    <script src="https://pay.google.com/gp/p/js/pay.js"></script>
+    <script
+      type="module"
+      src="https://js.braintreegateway.com/web/3.118.1/js/client.min.js"
+    ></script>
+    <script
+      type="module"
+      src="https://js.braintreegateway.com/web/3.118.1/js/google-payment.min.js"
+    ></script>
+  </head>
+  <body>
+    <h1>Google Pay</h1>
+    <a href="/">Main Page</a>
+
+    <hr />
+
+    <div id="container"></div>
+
+    <hr />
+
+    <p id="feedback"></p>
+    <p id="error"></p>
+
+    <script type="module" src="/static/public/braintree/hosted-fields/sdk/google-pay/index.js"></script>
+  </body>
+</html>

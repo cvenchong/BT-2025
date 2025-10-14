@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Fastlane</title>
+    <link rel="stylesheet" href="/static/public/braintree/hosted-fields/sdk/fastlane/index.css" />
+    <script
+      type="module"
+      src="https://js.braintreegateway.com/web/3.118.1/js/client.min.js"
+    ></script>
+    <script
+      type="module"
+      src="https://js.braintreegateway.com/web/3.118.1/js/fastlane.js"
+    ></script>
+    <script
+      type="module"
+      src="https://js.braintreegateway.com/web/3.118.1/js/data-collector.min.js"
+    ></script>
+  </head>
+  <body>
+    <h1>Fastlane</h1>
+    <a href="/">Main Page</a>
+
+    <hr />
+
+    <form id="form">
+      <div class="input-item">
+        <label for="email">Email</label>
+        <input class="input" id="email" />
+        <p class="error" id="email-error" hidden></p>
+      </div>
+
+      <input id="submit-button" type="submit" />
+    </form>
+
+    <hr />
+
+    <p id="feedback"></p>
+    <p id="error"></p>
+
+    <script type="module" src="/static/public/braintree/hosted-fields/sdk/fastlane/index.js"></script>
+  </body>
+</html>

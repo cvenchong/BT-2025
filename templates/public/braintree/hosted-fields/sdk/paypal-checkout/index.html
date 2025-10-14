@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Vault with Purchase with PayPal</title>
+    <title>Checkout with PayPal</title>
     <script
       type="module"
       src="https://js.braintreegateway.com/web/3.118.1/js/client.min.js"
@@ -12,7 +12,7 @@
     ></script>
   </head>
   <body>
-    <h1>Vault with Purchase with PayPal</h1>
+    <h1>Checkout with PayPal</h1>
     <a href="/">Main Page</a>
 
     <hr />
@@ -24,10 +24,16 @@
     <p id="feedback"></p>
     <p id="error"></p>
 
-    <a id="use-link" href="" hidden>
-      <button>Use vaulted payment method</button>
-    </a>
+    <br />
 
-    <script type="module" src="/static/public/braintree/hosted-fields/sdk/vault-purchase-paypal/index.js"></script>
+    <button id="settle-button" hidden data-transaction-id="">
+      Settle transaction
+    </button>
+    <br />
+    <button id="void-button" hidden data-transaction-id="">
+      Void transaction
+    </button>
+
+    <script type="module" src="/static/public/braintree/hosted-fields/sdk/paypal-checkout/index.js"></script>
   </body>
 </html>

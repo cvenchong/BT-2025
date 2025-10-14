@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Vault with Purchase with Card</title>
+    <link rel="stylesheet" href="/static/public/braintree/hosted-fields/sdk/vault-purchase-card/index.css" />
+    <script
+      type="module"
+      src="https://js.braintreegateway.com/web/3.118.1/js/client.min.js"
+    ></script>
+    <script
+      type="module"
+      src="https://js.braintreegateway.com/web/3.118.1/js/hosted-fields.min.js"
+    ></script>
+  </head>
+  <body>
+    <h1>Vault with Purchase with Card</h1>
+    <a href="/">Main Page</a>
+
+    <hr />
+
+    <form id="form">
+      <div class="input-item">
+        <label for="card-number">Card Number</label>
+        <div class="input-wrapper" id="card-number"></div>
+        <p class="error" id="card-number-error" hidden></p>
+      </div>
+
+      <div class="input-item">
+        <label for="expiration-date">Expiration Date</label>
+        <div class="input-wrapper" id="expiration-date"></div>
+        <p class="error" id="expiration-date-error" hidden></p>
+      </div>
+
+      <div class="input-item">
+        <label for="cvv">CVV</label>
+        <div class="input-wrapper" id="cvv"></div>
+        <p class="error" id="cvv-error" hidden></p>
+      </div>
+
+      <div class="input-item">
+        <label for="postal-code">Postal Code</label>
+        <div class="input-wrapper" id="postal-code"></div>
+        <p class="error" id="postal-code-error" hidden></p>
+      </div>
+
+      <input id="submit-button" type="submit" />
+    </form>
+
+    <hr />
+
+    <p id="feedback"></p>
+    <p id="error"></p>
+
+    <a id="use-link" href="" hidden>
+      <button>Use vaulted payment method</button>
+    </a>
+
+    <script type="module" src="/static/public/braintree/hosted-fields/sdk/vault-purchase-card/index.js"></script>
+  </body>
+</html>

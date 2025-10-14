@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Profile</title>
+  <script src="https://js.braintreegateway.com/web/3.130.0/js/client.min.js"></script>
+  <script src="https://js.braintreegateway.com/web/3.130.0/js/paypal-checkout.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f7f8fa;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      padding: 32px 40px 40px 40px;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 0.5em;
+      font-weight: 700;
+      color: #222;
+    }
+    h2 {
+      font-size: 1.2em;
+      margin-top: 2em;
+      margin-bottom: 1em;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 4px;
+    }
+    .profile-section {
+      margin-bottom: 2em;
+    }
+    .profile-section p {
+      margin: 0.3em 0;
+      font-size: 1em;
+    }
+    .label {
+      font-weight: 600;
+      color: #555;
+    }
+    .saved-methods {
+      margin-top: 1em;
+    }
+    .method-item {
+      display: flex;
+      align-items: center;
+      background: #f2f4f7;
+      border-radius: 8px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      transition: box-shadow 0.2s;
+    }
+    .method-item:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .method-info {
+      flex: 1;
+      font-size: 1em;
+      color: #222;
+    }
+    .method-info img {
+      margin: 6px 0 6px 0;
+      border-radius: 4px;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .delete-btn {
+      background: #e74c3c;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 0.95em;
+      margin-left: 16px;
+      transition: background 0.2s;
+    }
+    .delete-btn:hover {
+      background: #c0392b;
+    }
+    #addPaypalBtn {
+      background: #0070ba;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 22px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+    #addPaypalBtn:hover {
+      background: #005c99;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.35);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 2em 2.5em;
+      border-radius: 10px;
+      min-width: 320px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.13);
+      position: relative;
+      text-align: center;
+    }
+    .close-btn {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      cursor: pointer;
+      font-size: 1.5em;
+      color: #888;
+      font-weight: 700;
+      transition: color 0.2s;
+    }
+    .close-btn:hover {
+      color: #e74c3c;
+    }
+    @media (max-width: 800px) {
+      .container { padding: 18px 8px; }
+      .modal-content { padding: 1em 0.5em; min-width: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>User Profile</h1>
+    <div class="profile-section">
+      <h2>Customer Info</h2>
+      <p><span class="label">First Name:</span> <span id="firstName">John</span></p>
+      <p><span class="label">Last Name:</span> <span id="lastName">Doe</span></p>
+      <p><span class="label">User ID:</span> <span id="customerId">demo-user-123</span></p>
+      <p><span class="label">Shipping Address:</span> <span id="shippingAddress">123 Main St, San Jose, CA, 95131</span></p>
+    </div>
+
+    <div class="profile-section">
+      <h2>Saved Payment Methods</h2>
+      <div id="savedMethods" class="saved-methods">
+        <!-- Payment methods will be rendered here -->
+      </div>
+      <button id="addPaypalBtn">Add PayPal Payment Method</button>
+    </div>
+  </div>
+
+  <!-- Modal for Add PayPal -->
+  <div id="paypalModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" id="closeModal">&times;</span>
+      <h3>Add PayPal Payment Method</h3>
+      <p style="margin-bottom:18px;">Save for future purchases (Create BA Without Purchase Flow)</p>
+      <div id="paypal-button-container"></div>
+    </div>
+  </div>
+
+  <script>
+    let merchantAccountId = "stevenchong";
+    let paymentMethods = [];
+
+    function renderPaymentMethods() {
+      const container = document.getElementById("savedMethods");
+      container.innerHTML = "";
+      paymentMethods.forEach(method => {
+        const div = document.createElement("div");
+        div.className = "method-item";
+        let info = "";
+        if (method.uiCategory === "PayPal") {
+          info = `
+            <span class="method-info">
+              <img src="${method.imageUrl || 'https://www.paypalobjects.com/webstatic/icon/pp258.png'}" alt="PayPal" style="height:28px;vertical-align:middle;">
+              <br>
+              <strong>Token:</strong> ${method.token}
+              <br>
+              <strong>Email:</strong> ${method.email || 'N/A'}
+              <br>
+              <strong>Funding Source:</strong> ${method.funding_source_description || 'N/A'}
+            </span>
+          `;
+        } else if (method.uiCategory === "Card") {
+          info = `<span class="method-info"><strong>${method.brand}</strong> ****${method.last4}</span>`;
+        }
+        div.innerHTML = `${info} <button class="delete-btn" onclick="deleteMethod('${method.token}')">Delete</button>`;
+        container.appendChild(div);
+      });
+    }
+
+    function deleteMethod(id) {
+      // TODO: Call backend to delete
+      
+      paymentMethods = paymentMethods.filter(m => m.id !== id);
+      renderPaymentMethods();
+    }
+
+    document.getElementById("addPaypalBtn").onclick = function() {
+      document.getElementById("paypalModal").style.display = "flex";
+      renderPaypalButton();
+    };
+
+    document.getElementById("closeModal").onclick = function() {
+      document.getElementById("paypalModal").style.display = "none";
+      fetchStoredPaymentMethods();
+    };
+
+    function fetchStoredPaymentMethods() {
+      let customerId = document.getElementById("customerId").innerText;
+      fetch('/api/get-payment-methods?customerId=' + customerId)
+        .then(res => res.json())
+        .then(data => {
+          paymentMethods = data.PMTs || [];
+          renderPaymentMethods();
+        });
+    }
+
+    function renderPaypalButton() {
+      if (!braintree || !braintree.client || !braintree.paypalCheckout) return;
+      fetch("/braintree/sdk/auth/client", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ merchantAccountId: merchantAccountId })
+      })
+      .then(res => res.json())
+      .then(data => braintree.client.create({ authorization: data.token }))
+      .then(clientInstance => braintree.paypalCheckout.create({ client: clientInstance }))
+      .then(paypalCheckoutInstance => {
+        return paypalCheckoutInstance.loadPayPalSDK({
+          vault: true,
+          intent: "tokenize"
+        }).then(() => paypalCheckoutInstance);
+      })
+      .then(paypalCheckoutInstance => {
+        paypal.Buttons({
+          fundingSource: paypal.FUNDING.PAYPAL,
+          createBillingAgreement: function() {
+            return paypalCheckoutInstance.createPayment({ flow: "vault" });
+          },
+          onApprove: function(data, actions) {
+            return paypalCheckoutInstance.tokenizePayment(data).then(payload => {
+              document.getElementById("paypalModal").style.display = "none";
+              fetch('/createPMT', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  customerId: document.getElementById("customerId").innerText,
+                  payment_method_nonce: payload.nonce,
+                  merchantAccountId: merchantAccountId
+                })
+              })
+              .then(res => res.json())
+              .then(data => {
+                if (data.success) {
+                  alert("PayPal payment method added successfully.");
+                } else {
+                  alert("Failed to add PayPal payment method.");
+                }
+                fetchStoredPaymentMethods();
+              })
+              .catch(err => {
+                alert("Error saving payment method.");
+              });
+            });
+          },
+          onCancel: function() {
+            alert("PayPal linking cancelled.");
+          },
+          onError: function(err) {
+            alert("Error: " + err);
+          }
+        }).render("#paypal-button-container");
+      });
+    }
+
+    // Initial render
+    fetchStoredPaymentMethods();
+  </script>
+</body>
+</html>

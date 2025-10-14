@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MyBank</title>
+    <link rel="stylesheet" href="/static/public/braintree/hosted-fields/sdk/mybank/index.css" />
+    <script
+      type="module"
+      src="https://js.braintreegateway.com/web/3.118.1/js/client.min.js"
+    ></script>
+    <script
+      type="module"
+      src="https://js.braintreegateway.com/web/3.118.1/js/local-payment.min.js"
+    ></script>
+  </head>
+  <body>
+    <h1>MyBank</h1>
+    <a href="/">Main Page</a>
+
+    <hr />
+
+    <form id="form">
+      <div class="input-item">
+        <label for="first-name">First Name</label>
+        <br />
+        <input class="input-wrapper" id="first-name" type="text" />
+        <p class="error" id="first-name-error" hidden></p>
+      </div>
+
+      <div class="input-item">
+        <label for="last-name">Last Name</label>
+        <br />
+        <input class="input-wrapper" id="last-name" type="text" />
+        <p class="error" id="last-name-error" hidden></p>
+      </div>
+
+      <input id="submit-button" type="submit" />
+    </form>
+
+    <hr />
+
+    <p id="feedback"></p>
+    <p id="error"></p>
+
+    <script type="module" src="/static/public/braintree/hosted-fields/sdk/mybank/index.js"></script>
+  </body>
+</html>
