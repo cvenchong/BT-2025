@@ -128,6 +128,7 @@ async function initBT() {
               // Base payment request options for one-time payments
               var createPaymentRequestOptions = {
                 flow: 'checkout', // Required
+                userAction: 'COMMIT',
                 amount: amount, // Required
                 currency: currencyCode, // Required, must match the currency passed in with loadPayPalSDK
                 intent: intent, // Must match the intent passed in with loadPayPalSDK
