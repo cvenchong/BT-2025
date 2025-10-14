@@ -2,11 +2,12 @@
 //const BASE_URL = "http://127.0.0.1:5000";
 //const BASE_URL = "http://bt-steven-2025.ap-southeast-1.elasticbeanstalk.com"; // TODO: change to your own domain
 const BASE_URL = 'https://bt-2025.onrender.com'
+let return_cancel_url = BASE_URL + '/public/braintree/hosted-fields/sdk/app-switch/index_new.html';
 const merchantAccountId = "stevenustest";
 const currencyCode = "USD";
 const amount = "10.00";
 const buyerCountry = "US";
-const intent = 'CAPTURE';
+const intent = 'capture';
 var state = { btClient: null, btDeviceDataCollectorInstance: null, btPayPalInstance: null, btGPInstance: null, googlePaymentClient: null, btThreeDS: null, btDeviceData: null };
 //const BASE_URL = "http://10.0.2.2:8888";
 
@@ -71,9 +72,9 @@ async function initBT() {
       console.log("PayPal Checkout Instance: ", paypalCheckoutInstance);
         // Base PayPal SDK script options
         var loadPayPalSDKOptions = {
-          currency: 'USD', // Must match the currency passed in with createPayment
-          intent: 'capture', // Must match the intent passed in with createPayment
-          //commit: true // Required for Pay Now flow with App Switch
+          currency: currencyCode, // Must match the currency passed in with createPayment
+          intent: intent, // Must match the intent passed in with createPayment
+          commit: true // Required for Pay Now flow with App Switch
         }
 
         paypalCheckoutInstance.loadPayPalSDK(loadPayPalSDKOptions, function () {
@@ -82,14 +83,13 @@ async function initBT() {
             fundingSource: paypal.FUNDING.PAYPAL,
             appSwitchWhenAvailable: true, // Indicator to trigger app switch
             createOrder: function () {
-              let return_cancel_url = BASE_URL + '/public/braintree/hosted-fields/sdk/app-switch/index.html';
               console.log("Return/Cancel URL: ", return_cancel_url);
               // Base payment request options for one-time payments
               var createPaymentRequestOptions = {
                 flow: 'checkout', // Required
-                amount: 10.00, // Required
-                currency: 'USD', // Required, must match the currency passed in with loadPayPalSDK
-                intent: 'capture', // Must match the intent passed in with loadPayPalSDK
+                amount: amount, // Required
+                currency: currencyCode, // Required, must match the currency passed in with loadPayPalSDK
+                intent: intent, // Must match the intent passed in with loadPayPalSDK
                 // App Switch specific options
                 returnUrl: return_cancel_url,
                 cancelUrl: return_cancel_url
@@ -98,16 +98,33 @@ async function initBT() {
               return paypalCheckoutInstance.createPayment(createPaymentRequestOptions);
             },
             onApprove: function (data, actions) {
-              return paypalCheckoutInstance.tokenizePayment(data, function (err, payload) {
-                // Submit 'payload.nonce' to your server
-                if (err) {
-                  console.error('Tokenization error', err);
-                  return;
-                }
-                console.log('Tokenized payment', payload);
-                // Submit 'payload.nonce' to your server
-                submitNonceToServer(payload.nonce); 
-              });
+                console.log( 'onApprove data: ' + JSON.stringify(data, null, 2));
+                // Submit payload.nonce to your server
+                return paypalCheckoutInstance.tokenizePayment(data).then(function (payload) {
+                  console.log( 'tokenizePayment returned payload: ' + JSON.stringify(payload, null, 2));
+                  // Submit payload.nonce to your server
+                  fetch('/api/payments/paypal/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      paymentMethodNonce: payload.nonce,
+                      merchantAccountId: maid || null,
+                      amount: amount,
+                      payerId: payload.details.payerId,
+                      deviceData: state.deviceDataInstance ? state.deviceDataInstance.deviceData : null,
+                      intent: intent,
+                      customerId: null,
+                      isDeviceDataRequired: null,
+                      returnUrl: return_cancel_url,
+                      cancelUrl: return_cancel_url
+
+                    })
+                  }).then(function(response){ 
+                    console.log( 'Server response: ', response);
+                  }).catch(function(err){
+                    console.logError( 'Error sending nonce to server', err);
+                  });
+                });
             },
             onCancel: function (data) {
               console.log('PayPal payment cancelled', JSON.stringify(data, 0, 2));
