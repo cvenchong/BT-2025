@@ -1,6 +1,7 @@
 // NOTE: In Android Studio emulator, use 10.0.2.2 to access anything locally hosted on the actual device
 //const BASE_URL = "http://127.0.0.1:5000";
 //const BASE_URL = "http://bt-steven-2025.ap-southeast-1.elasticbeanstalk.com"; // TODO: change to your own domain
+const BASE_URL = 'https://bt-2025.onrender.com'
 const merchantAccountId = "stevenustest";
 const currencyCode = "USD";
 const amount = "10.00";
@@ -33,6 +34,25 @@ async function getClientToken() {
     }
 }
 
+async function submitNonceToServer(nonce) {
+  try {
+    const response = await fetch('/braintree/sdk/auth/nonce', {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        nonce: nonce,
+      }),
+    });
+
+    const responseJson = await response.json();
+    console.log("Server Response: ", responseJson);
+  } catch (err) {
+    console.error("Error submitting nonce to server: ", err);
+  }
+}
+
 async function initBT() {
     console.log("Attempting to get client token");
     var clientToken = await getClientToken();
@@ -58,11 +78,12 @@ async function initBT() {
 
         paypalCheckoutInstance.loadPayPalSDK(loadPayPalSDKOptions, function () {
           console.log("PayPal SDK loaded", paypalCheckoutInstance);
-          let  = BASE_URL + '/public/braintree/hosted-fields/sdk/app-switch/index.html';
           const button = paypal.Buttons({
             fundingSource: paypal.FUNDING.PAYPAL,
             appSwitchWhenAvailable: true, // Indicator to trigger app switch
             createOrder: function () {
+              let return_cancel_url = BASE_URL + '/public/braintree/hosted-fields/sdk/app-switch/index.html';
+              console.log("Return/Cancel URL: ", return_cancel_url);
               // Base payment request options for one-time payments
               var createPaymentRequestOptions = {
                 flow: 'checkout', // Required
@@ -70,8 +91,8 @@ async function initBT() {
                 currency: 'USD', // Required, must match the currency passed in with loadPayPalSDK
                 intent: 'capture', // Must match the intent passed in with loadPayPalSDK
                 // App Switch specific options
-                returnUrl: 'https://bt-steven-2025.ap-southeast-1.elasticbeanstalk.com/example.com/return',
-                cancelUrl: 'https://bt-steven-2025.ap-southeast-1.elasticbeanstalk.com/example.com/return'
+                returnUrl: return_cancel_url,
+                cancelUrl: return_cancel_url
               };
               
               return paypalCheckoutInstance.createPayment(createPaymentRequestOptions);
@@ -79,6 +100,13 @@ async function initBT() {
             onApprove: function (data, actions) {
               return paypalCheckoutInstance.tokenizePayment(data, function (err, payload) {
                 // Submit 'payload.nonce' to your server
+                if (err) {
+                  console.error('Tokenization error', err);
+                  return;
+                }
+                console.log('Tokenized payment', payload);
+                // Submit 'payload.nonce' to your server
+                submitNonceToServer(payload.nonce); 
               });
             },
             onCancel: function (data) {
