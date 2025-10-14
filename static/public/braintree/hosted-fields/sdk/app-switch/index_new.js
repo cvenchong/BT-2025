@@ -11,6 +11,47 @@ const intent = 'capture';
 var state = { btClient: null, btDeviceDataCollectorInstance: null, btPayPalInstance: null, btGPInstance: null, googlePaymentClient: null, btThreeDS: null, btDeviceData: null };
 //const BASE_URL = "http://10.0.2.2:8888";
 
+function appendLog(msg, type="log") {
+  const logDiv = document.getElementById("log-section");
+  if (!logDiv) return;
+  const el = document.createElement("div");
+  const now = new Date();
+  const timestamp = now.toLocaleTimeString();
+  el.textContent = `[${timestamp}] [${type}] ${msg}`;
+  el.style.whiteSpace = "pre-wrap"; // allow new lines
+  if (type === "error") {
+    el.style.color = "#ff6b6b"; // red for errors
+  } else {
+    el.style.color = "#fff"; // white for normal logs
+  }
+  logDiv.appendChild(el);
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+// Save original console methods
+const origLog = console.log;
+const origError = console.error;
+const origWarn = console.warn;
+const origInfo = console.info;
+
+// Override console methods
+console.log = function(...args) {
+  origLog.apply(console, args);
+  appendLog(args.map(a => typeof a === "object" ? JSON.stringify(a) : a).join(" "), "log");
+};
+console.error = function(...args) {
+  origError.apply(console, args);
+  appendLog(args.map(a => typeof a === "object" ? JSON.stringify(a) : a).join(" "), "error");
+};
+console.warn = function(...args) {
+  origWarn.apply(console, args);
+  appendLog(args.map(a => typeof a === "object" ? JSON.stringify(a) : a).join(" "), "warn");
+};
+console.info = function(...args) {
+  origInfo.apply(console, args);
+  appendLog(args.map(a => typeof a === "object" ? JSON.stringify(a) : a).join(" "), "info");
+};
+
 
 async function getClientToken() {
     console.log("getting MAID: ", merchantAccountId);
@@ -140,6 +181,7 @@ async function initBT() {
           // To trigger completion of the flow, execute the code below after re-instantiating buttons
           if (button.hasReturned()) {
             button.resume();
+            
           } else {
             button.render('#paypal-button').then(function () {
               // The PayPal button will be rendered in an html element with the ID
