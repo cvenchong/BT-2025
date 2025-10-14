@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Braintree Playground – Local Payment Methods</title>
+    <link rel="stylesheet" href="/static/css/playground.css">
+  </head>
+  <body>
+    <main class="container">
+      <h1>Local Payment Methods</h1>
+      <section class="config">
+        <div class="field">
+          <label>LPM
+            <select id="lpm">
+              <option value="ideal">iDEAL</option>
+              <option value="sofort">Klarna Pay Now (Sofort)</option>
+              <option value="grabpay">GrabPay</option>
+              <option value="trustly">Trustly</option>
+              <option value="oxxo">OXXO</option>
+            </select>
+          </label>
+        </div>
+        <div class="field"><label>Amount <input id="amount" type="number" step="0.01" value="10.00"></label></div>
+        <div class="field"><label>Currency <input id="currency" type="text" value="EUR"></label></div>
+        <div class="field"><label>Merchant Account ID <input id="maid" type="text" placeholder="optional"></label></div>
+        <div class="field"><label>Country Code <input id="countryCode" type="text" value="NL"></label></div>
+        <div class="field"><label>Email <input id="email" type="email" value="buyer@example.com"></label></div>
+        <div class="field"><label>Given Name <input id="givenName" type="text" value="Test"></label></div>
+        <div class="field"><label>Surname <input id="surname" type="text" value="Buyer"></label></div>
+        <div class="field"><label>Issuer (iDEAL) <input id="issuer" type="text" placeholder="optional"></label></div>
+        <div class="field"><label>Return URL <input id="returnUrl" type="text" value="/local-payments"></label></div>
+        <div class="field"><label>Cancel URL <input id="cancelUrl" type="text" value="/local-payments"></label></div>
+        <div class="field"><label><input id="settle" type="checkbox" checked> Submit for Settlement</label></div>
+        <div class="field"><label><input id="deviceData" type="checkbox"> Collect Device Data</label></div>
+        <div class="actions">
+          <button id="init">Initialize</button>
+          <button id="start" disabled>Start Payment</button>
+        </div>
+      </section>
+
+      <section class="guidance">
+        <h2>Control Panel Requirements</h2>
+        <ul>
+          <li>Enable each LPM you plan to demo.</li>
+          <li>Ensure currencies and merchant accounts are enabled (e.g., EUR, MXN, SGD).</li>
+          <li>Configure return/cancel URL allowlist for redirects.</li>
+          <li>For OXXO, set up webhooks for non-instant local payments.</li>
+        </ul>
+      </section>
+
+      <section class="results">
+        <h2>Results</h2>
+        <pre id="log"></pre>
+      </section>
+    </main>
+
+    <script src="https://js.braintreegateway.com/web/3.129.1/js/client.min.js"></script>
+    <script src="https://js.braintreegateway.com/web/3.129.1/js/local-payment.min.js"></script>
+    <script src="https://js.braintreegateway.com/web/3.129.1/js/data-collector.min.js"></script>
+    <script src="/static/js/playground_shared.js"></script>
+    <script src="/static/js/local_payments.js"></script>
+  </body>
+  </html>
+
+

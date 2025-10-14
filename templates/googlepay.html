@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Braintree Playground – Google Pay (v2)</title>
+    <link rel="stylesheet" href="/static/css/playground.css">
+  </head>
+  <body>
+    <main class="container">
+      <h1>Google Pay (Braintree JS SDK, v2)</h1>
+      <section class="config">
+        <div class="field"><label>Customer ID <input type="text" id="customer-id" placeholder="optional-customer-id" value="demo-user-123"></label></div>
+        <div class="field"><label>Amount <input id="amount" type="number" step="0.01" value="10.00"></label></div>
+        <div class="field"><label>Currency <input id="currency" type="text" value="EUR"></label></div>
+        <div class="field"><label>Merchant Account ID <input id="maid" type="text" placeholder="optional" value="stevenchongEUR"></label></div>
+        <div class="field"><label><input id="enable3ds" type="checkbox" checked> Enable 3D Secure</label></div>
+        <div class="field"><label><input id="settle" type="checkbox" checked> Submit for Settlement</label></div>
+        <div class="field">
+            <label class="checkbox">
+                <input type="checkbox" id="server-vault-on-success"> (Server Side) Vault on Success - NOT IMPLEMNETED YET. WIP.
+            </label>
+        </div>
+        <div class="field"><label>Country Code <input id="countryCode" type="text" value="DE"></label></div>
+        <div class="field">
+          <label>Allowed Auth Methods</label>
+          <label><input id="google-auth-method-pan-only" type="checkbox" class="authMethod" value="PAN_ONLY" checked> PAN_ONLY</label>
+          <label><input id="google-auth-method-cryptogram-3ds" type="checkbox" class="authMethod" value="CRYPTOGRAM_3DS" checked> CRYPTOGRAM_3DS</label>
+        </div>
+        <div class="field"><label><input id="billingRequired" type="checkbox" checked> Require Billing Address</label></div>
+        <div class="field"><label><input id="device-data-required" type="checkbox" checked> Collect Device Data</label></div>
+        <div class="actions">
+          <button id="init">Initialize</button>
+        </div>
+      </section>
+      <section class="paymentMethodsContainer">
+        <h2>Payment Method Button(s) Container</h2>
+        <div id="googlepayContainer"></div>
+      </section>
+      <section class="guidance">
+        <h2>Control Panel Requirements</h2>
+        <ul>
+          <li>Enable Google Pay for your sandbox merchant.</li>
+          <li>Configure Gateway Merchant ID and allowed auth methods.</li>
+          <li>Enable 3D Secure to demo liability shift with tokenized cards.</li>
+        </ul>
+      </section>
+
+      <section class="results">
+        <h2>Results</h2>
+        <pre id="log"></pre>
+      </section>
+    </main>
+    <script src="https://pay.google.com/gp/p/js/pay.js"></script>
+    <script src="https://js.braintreegateway.com/web/3.129.1/js/client.min.js"></script>
+    <script src="https://js.braintreegateway.com/web/3.129.1/js/google-payment.min.js"></script>
+    <script src="https://js.braintreegateway.com/web/3.129.1/js/three-d-secure.min.js"></script>
+    <script src="https://js.braintreegateway.com/web/3.129.1/js/data-collector.min.js"></script>
+    <script src="/static/js/playground_shared.js"></script>
+    <script src="/static/js/googlepay.js"></script>
+  </body>
+  </html>
+
+

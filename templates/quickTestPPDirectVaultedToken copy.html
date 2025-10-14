@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>FraudNet Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:920px;margin:3rem auto;padding:0 1rem;}
+    code{background:#f6f8fa;padding:0 .25rem;border-radius:4px}
+    .box{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:16px 0}
+    .muted{color:#6b7280}
+    button{font:inherit}
+  </style>
+</head>
+<body>
+  <h1>PayPal FraudNet: Basic Integration</h1>
+
+  <div class="box">
+    <p><strong>Status:</strong> This page generates a unique <code>f</code> value and loads FraudNet.</p>
+    <p><strong>Next step:</strong> Send that <code>f</code> to your server and include it as the
+      <code>PAYPAL-CLIENT-METADATA-ID</code> header when you call PayPal (e.g., Create Order).</p>
+  </div>
+
+  <div class="box">
+    <p><strong>Current FraudNet Session Identifier (<code>f</code>):</strong>
+      <span id="fn-session-id" style="font-family:ui-monospace,Menlo,Consolas,monospace"></span>
+    </p>
+  </div>
+
+  <hr class="box" />
+
+  <h2>Sending the FraudNet ID to your backend</h2>
+  <p class="muted">Example client call (done automatically below with top-level <code>await</code>):</p>
+  <pre class="box"><code>await fetch("/create_pp_order_v2", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ f: &lt;FraudNet f&gt;, s: &lt;source&gt;, sandbox: true })
+});</code></pre>
+
+  <div class="box" id="redirectButtonContainer"></div>
+
+  <div class="box">
+    <strong>Create Order Result</strong>
+    <pre id="result" class="muted" style="white-space:pre-wrap;word-break:break-word;margin-top:.5rem;"></pre>
+  </div>
+
+  <!-- FraudNet params block (will be overwritten by the module script below) -->
+  <script type="application/json" fncls="fnparams-dede7cc5-15fd-4c75-a9f4-36c430ee3a99">
+    { "f": "", "s": "", "sandbox": false }
+  </script>
+
+  <!-- All logic consolidated into one ES module. Top-level await is allowed here. -->
+  <script type="module">
+    /************** Config **************/
+    const CONFIG = {
+      apis: {
+        POST_CREATE_ORDER_V2: "/create_pp_order_v2_vaultedtoken"
+      },
+      SOURCE_ID: "StevenMer_MDBXQWUTS7Y9E_cxo-pages" // <merchantId>_<pageId> format
+    };
+
+    /************** Utilities **************/
+    function generateFnSessionId() {
+      const bytes = new Uint8Array(16);
+      (window.crypto || window.msCrypto).getRandomValues(bytes);
+      return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join(''); // 32 hex chars
+    }
+
+    function removeRedirectButton() {
+      const existing = document.getElementById("redirectButton");
+      if (existing) existing.remove();
+    }
+
+    function addRedirectButton(label = "Fullpage Redirect To PayPal", onClick = () => {}) {
+      const container = document.getElementById("redirectButtonContainer");
+      removeRedirectButton();
+
+      const btn = document.createElement("button");
+      btn.id = "redirectButton";
+      btn.textContent = label;
+      btn.style.padding = "0.5rem 1rem";
+      btn.style.border = "1px solid #e5e7eb";
+      btn.style.borderRadius = "8px";
+      btn.style.cursor = "pointer";
+
+      btn.addEventListener("click", onClick);
+      container.appendChild(btn);
+    }
+
+    function updateFnParamsJSON(params) {
+      const tag = document.querySelector('script[type="application/json"][fncls="fnparams-dede7cc5-15fd-4c75-a9f4-36c430ee3a99"]');
+      if (tag) tag.text = JSON.stringify(params);
+    }
+
+    async function callBackend(url, requestData, { timeoutMs = 30000 } = {}) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        console.log("Calling Backend url:", url);
+        console.log("requestData:", requestData);
+
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestData),
+          signal: ctrl.signal
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => "");
+          throw new Error(`Failed to call backend: \${resp.status} \${resp.statusText} \${text}`);
+        }
+        return resp.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    /************** Main (top-level await) **************/
+    // 1) Generate FraudNet identifiers
+    const FN_SESSION_ID = generateFnSessionId();
+    const SOURCE_ID = CONFIG.SOURCE_ID;
+
+    // 2) Expose to window (handy for debugging & your server-side logging)
+    window.__FRAUDNET__ = { f: FN_SESSION_ID, s: SOURCE_ID, sandbox: false };
+
+    // 3) Show f on page
+    document.getElementById("fn-session-id").textContent = FN_SESSION_ID;
+
+    // 4) Write params for FraudNet before fb.js loads
+    updateFnParamsJSON(window.__FRAUDNET__);
+
+    // 5) Call your backend to create an order (using top-level await)
+    const requestData = { f: FN_SESSION_ID, s: SOURCE_ID, sandbox: true, vaultOnSuccess: false, vaultedToken:'4fs2697654680120w' };
+
+    // 6) add no js support
+    var noscript = document.createElement("noscript");
+    var img = document.createElement("img");
+    img.src = `https://c.paypal.com/v1/r/d/b/ns?f=${FN_SESSION_ID}&s=${SOURCE_ID}&js=0&r=1`;
+    noscript.appendChild(img);
+    document.body.appendChild(noscript);
+
+
+    let createOrderResponse = null;
+
+    try {
+      //add delay before calling backend to simulate real world scenario
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      createOrderResponse = await callBackend(CONFIG.apis.POST_CREATE_ORDER_V2, requestData);
+      console.log("create order v2 with vaulted token response:", createOrderResponse);
+      document.getElementById("result").textContent =
+        JSON.stringify(createOrderResponse, null, 2);
+    } catch (err) {
+      console.error("create order v2 failed:", err);
+      document.getElementById("result").textContent = String(err);
+    }
+  </script>
+
+  <!-- Load FraudNet AFTER the fnparams block (and after we updated it above) -->
+  <script src="https://c.paypal.com/da/r/fb.js" async></script>
+</body>
+</html>

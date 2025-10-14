@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<meta http-equiv="X-UA-Compatible" content="IE=8">
+<head>
+<title>Fraudnet2 Test Page</title>
+<style type="text/css">
+    #response-log {
+      border: 1px solid #aaaaaa;
+      padding: 10px 15px;
+      margin: 15px 0;
+    }
+ 
+    #response-log .log {
+      margin: 5px 0;
+      border-top: 1px solid #ccc;
+    }
+  </style>
+  <script type="text/javascript">
+  function _injectConfig(options) {
+          
+        var script = document.getElementById('fconfig');
+        if (script) {
+            if (script.parentNode) {
+                script.parentNode.removeChild(script);
+            }
+        }
+        script = document.createElement('script');    
+        script.id = 'fconfig';
+        script.type = 'application/json';
+        script.setAttribute('fncls', 'fnparams-dede7cc5-15fd-4c75-a9f4-36c430ee3a99');
+        var configuration = {
+            'f': "change_this_to_32char_guid",
+            's': "unique_flowid_per_web_page", //unique for each web page
+            'ts': {
+                  "type": "UL",
+                 "fields": [{"id":"email", "min":8}, {"id":"password", "min":8}],
+                  "delegate": false
+            }
+        };
+        script.text = JSON.stringify(configuration);
+        document.body.appendChild(script);
+        var fnUrl = "https://c.paypal.com/da/r/fb.js";
+         
+        _loadBeaconJS();
+         
+        function _loadBeaconJS(options) {
+            var script = document.createElement('script');
+            script.src = fnUrl;
+            document.body.appendChild(script);
+        }
+}
+</script>
+</head>
+<body onload=_injectConfig()>
+<div>
+  <h2>Fraudnet2 Test Page</h2>
+  <div>
+  <input id="email" name="login_email" type="email" class="hasHelp  validate validateEmpty " required="required" aria-required="true"  autocomplete="off" placeholder="Email" aria-describedby="emailErrorMessage">
+  <input id="password" name="login_password" type="password" class="hasHelp  validateEmpty " required="required" aria-required="true" value="" placeholder="Password">
+</div>
+</div>
+</body>
+</html>
