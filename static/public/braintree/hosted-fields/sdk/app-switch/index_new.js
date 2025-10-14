@@ -117,6 +117,7 @@ async function initBT() {
           intent: intent, // Must match the intent passed in with createPayment
           commit: true // Required for Pay Now flow with App Switch
         }
+        console.log("Loading PayPal SDK with options: ", loadPayPalSDKOptions);
 
         paypalCheckoutInstance.loadPayPalSDK(loadPayPalSDKOptions, function () {
           console.log("PayPal SDK loaded", paypalCheckoutInstance);
@@ -124,7 +125,6 @@ async function initBT() {
             fundingSource: paypal.FUNDING.PAYPAL,
             appSwitchWhenAvailable: true, // Indicator to trigger app switch
             createOrder: function () {
-              console.log("Return/Cancel URL: ", return_cancel_url);
               // Base payment request options for one-time payments
               var createPaymentRequestOptions = {
                 flow: 'checkout', // Required
@@ -135,6 +135,8 @@ async function initBT() {
                 returnUrl: return_cancel_url,
                 cancelUrl: return_cancel_url
               };
+
+              console.log("createPaymentRequestOptions: ", createPaymentRequestOptions);
               
               return paypalCheckoutInstance.createPayment(createPaymentRequestOptions);
             },
