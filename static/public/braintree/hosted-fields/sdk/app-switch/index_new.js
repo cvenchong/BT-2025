@@ -182,9 +182,9 @@ async function initBT() {
           // If you support app switch, depending on the browser the buyer may end up in a new tab
           // To trigger completion of the flow, execute the code below after re-instantiating buttons
           if (button.hasReturned()) {
-            button.resume();
             console.log("App switch completed => button.resume() is called.."); 
-
+            button.resume();
+            
           } else {
             button.render('#paypal-button').then(function () {
               // The PayPal button will be rendered in an html element with the ID
