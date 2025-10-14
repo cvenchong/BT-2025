@@ -1,0 +1,14 @@
+.container { max-width: 960px; margin: 24px auto; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+h1 { font-size: 22px; margin-bottom: 12px; }
+section { margin: 16px 0; }
+.config { padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+.field { margin: 8px 0; }
+label { display: block; }
+input, select, button { padding: 8px; font-size: 14px; }
+.actions { margin-top: 12px; }
+.paymentMethodsContainer { background: #f8fafc; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
+.guidance { background: #f8fafc; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
+.results { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; }
+#log { white-space: pre-wrap; }
+
+
