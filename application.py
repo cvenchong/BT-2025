@@ -124,6 +124,43 @@ def index():
 @app.route('/public/<path:filename>')
 def serve_public(filename):
     print("Serving public file: ", filename)
+
+    # check if query param exists
+    order_id = request.args.get('token')
+    payer_id = request.args.get('PayerID')
+    if order_id and payer_id:
+        # Handle the case where both order_id and payer_id are present 
+        # Get Order details from PayPal
+        clientToken = post_pp_client_token()
+        order_details = get_pp_order_details( clientToken, order_id)
+        order_details_json = json.dumps(order_details, indent=2)
+
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Order Confirmation</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; }}
+                .container {{ max-width: 700px; margin: auto; background: #f7f7f7; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px #ccc; }}
+                h1 {{ color: #0070ba; }}
+                pre {{ background: #222; color: #eee; padding: 16px; border-radius: 6px; font-size: 0.95em; overflow-x: auto; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Payment Confirmation</h1>
+                <p><strong>Order ID:</strong> {order_id}</p>
+                <p><strong>Payer ID:</strong> {payer_id}</p>
+                <p>Thank you for your payment!</p>
+                <h2>Order Details</h2>
+                <pre>{order_details_json}</pre>
+            </div>
+        </body>
+        </html>
+        """
+        return html
+
     template_uri = "public/" + filename
     return render_template(template_uri)
 
