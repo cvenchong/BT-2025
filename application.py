@@ -27,6 +27,33 @@ CORS(app)
 #     # Update environment or .env if needed
 #     os.environ["PUBLIC_URL"] = public_url
 
+class PP_CREDENTIALS(Enum):
+    LEACHONG = {
+        "username": "AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg",
+        "password": "EHVzVi_HdHuqMjQVYQQx7NF8klp7E4qrZA8GVvZSTvSZ5Vxc4lQ3Cu67Rr9OtPqvxyDC-7E5RcBXCsAj"
+    }
+    LEACHONG_MY = {
+        "username": "Ab7PV4MNIymVgzPbDHNdAKtbYSRJvI9alA9lGso_dDrpgGaiVNyCbW4xO7Xb2ithkDwI1QE7ArJOKmOk",
+        "password": "ENh9kVABew5fn9QFCILYOR3491n_mztetpZ8DOrSdzDRMNPzBoUE1f6b3wr8tcSj0AR5EJFkG8BFdD8D"
+    }
+    LEACHONG_HK = {
+        "username": "AQCfBdKURR7-n-y9466s_Q66bksi4hqsVDueUhmf2dpzC7CuLv-KQdmy9ABRoRXLNIIR5mw3zXrmgtfa",
+        "password": "EGeA0eW3FHr5soQ7Z37J0YRyOfJMvDvzQkuAp0Q575-k7iIPSkzZ-2Z0hZ1828ApCN-VQ2nsEaDfnxgZ"
+    }
+    FOR_FLASK = LEACHONG
+
+    #my leachong@paypal.com
+    #username='AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg' #client id
+    #password='EHVzVi_HdHuqMjQVYQQx7NF8klp7E4qrZA8GVvZSTvSZ5Vxc4lQ3Cu67Rr9OtPqvxyDC-7E5RcBXCsAj' #client secret
+
+    #hk rcvt rcvr-hk-1@gmail.com
+    # username='AQCfBdKURR7-n-y9466s_Q66bksi4hqsVDueUhmf2dpzC7CuLv-KQdmy9ABRoRXLNIIR5mw3zXrmgtfa' #client id
+    # password='EGeA0eW3FHr5soQ7Z37J0YRyOfJMvDvzQkuAp0Q575-k7iIPSkzZ-2Z0hZ1828ApCN-VQ2nsEaDfnxgZ' #client secret
+
+    #my rcvt leachong-my@paypal.com
+    #username='Ab7PV4MNIymVgzPbDHNdAKtbYSRJvI9alA9lGso_dDrpgGaiVNyCbW4xO7Xb2ithkDwI1QE7ArJOKmOk' #client id
+    #password='ENh9kVABew5fn9QFCILYOR3491n_mztetpZ8DOrSdzDRMNPzBoUE1f6b3wr8tcSj0AR5EJFkG8BFdD8D' #client secret
+
 #gateway Settings
 gateway = braintree.BraintreeGateway(
     braintree.Configuration(
@@ -255,7 +282,7 @@ def public_bt_client_token():
     maid = data.get("merchantAccountId")  # ✅ returns None instead of error if key is not present
 
 
-    token = getClientToken(custId)
+    token = getClientTokenMAID(maid, custId)
     return jsonify({
         "success": True,
         "token": token
@@ -804,6 +831,7 @@ def completePPCheckout():
     orderID = request.args.get("token")
     FN_SESSION_ID = request.args.get("f")
     clientToken = post_pp_client_token()
+
     isPatch = request.args.get("isPatch", "false").lower() == "true"
     print("isPatch: ", isPatch)
     
@@ -943,6 +971,9 @@ def createPPOrderV2VaultedToken():
     print("Received JSON:", data)  # Print the whole payload
     #custId = data.get("custId")  # ✅ returns None instead of error if key is not present
     clientToken = post_pp_client_token()    
+
+
+    
     FN_SESSION_ID = data.get("f")
     vaultOnSuccess = data.get("vaultOnSuccess", False)    
     vaultedToken = data.get("vaultedToken")    
@@ -959,6 +990,19 @@ def createPPOrderV2VaultedToken():
     return jsonify({
             "success": True,
             "response": response
+        })
+
+@app.route("/create_pp_order_v2_raw_payload", methods=["POST"])
+def createPPOrderV2_Raw_Payload():
+    data = request.get_json()
+    print("Received JSON:", data)  # Print the whole payload
+    #custId = data.get("custId")  # ✅ returns None instead of error if key is not present
+    clientToken = post_pp_client_token()    
+    order_response = post_pp_create_order_raw(clientToken, data)
+
+    return jsonify({
+            "success": True,
+            "order_response": order_response
         })
 
 
@@ -978,6 +1022,25 @@ def createPPOrderV2():
             "order_response": order_response
         })
 
+def post_pp_create_order_raw(clientToken, payload):
+    try:
+        url = 'https://api-m.sandbox.paypal.com' + '/v2/checkout/orders'
+        headers = {
+            "Authorization": f"Bearer {clientToken}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+            "PayPal-Request-Id": str(uuid.uuid1())
+        }
+    
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        #if response.status_code == 200:
+        print("Create Order HTTP Status:", response.status_code)
+        printPPResponse(data)
+        return data
+    except Exception as e:
+        raise Exception(f"Failed to create order: {e}")
 
 def post_pp_create_order(token, FN_SESSION_ID, vaultOnSuccess=False, vaultedToken=None, isPatch=False):
     try:
@@ -1213,6 +1276,16 @@ def post_pp_create_order(token, FN_SESSION_ID, vaultOnSuccess=False, vaultedToke
     except Exception as e:
         raise Exception(f"Failed to create order: {e}")
 
+@app.route("/getPPClientToken", methods=["GET"])
+def get_pp_client_token():
+    credential = PP_CREDENTIALS.FOR_FLASK
+    print(credential)
+    username = credential["client_id"]
+    password = credential["client_secret"]
+
+    token = post_pp_client_token(username, password)
+    return jsonify({"token": token})
+
 def post_pp_client_token():
     """
     GET client token by POST request with Basic Auth.
@@ -1229,9 +1302,11 @@ def post_pp_client_token():
         Exception: If request fails or access token is missing.
     """
     try:
+        username = PP_CREDENTIALS.FOR_FLASK.value["username"]
+        password = PP_CREDENTIALS.FOR_FLASK.value["password"]
         url = 'https://api-m.sandbox.paypal.com' + '/v1/oauth2/token'
-        username='AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg' #client id
-        password='EHVzVi_HdHuqMjQVYQQx7NF8klp7E4qrZA8GVvZSTvSZ5Vxc4lQ3Cu67Rr9OtPqvxyDC-7E5RcBXCsAj' #client secret
+        username=username  #client id
+        password=password  #client secret
         payload ={
             "grant_type": "client_credentials"
         }
@@ -1323,23 +1398,93 @@ def put_stc(token, unique_session_or_orderId):
 
 ########
 
+def send_pp_payout(clientToken, currency, amount, payout_receiver_email_list):
+    try:
+        url = 'https://api-m.sandbox.paypal.com' + '/v1/payments/payouts'
+        
+        headers = {
+            "Authorization": f"Bearer {clientToken}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "items": [],
+            "sender_batch_header": {
+                "sender_batch_id": str(uuid.uuid1()),
+                "recipient_type": "EMAIL",
+                "email_subject": "You have a payout!",
+                "email_message": "You have received a payout!"
+            }
+        }
+
+        for payout_receiver_email in payout_receiver_email_list:
+            item = {
+                "amount": {
+                    "value": amount,
+                    # Optional: To send a payout in a different currency, set the currency parameter to the payment's currency code. 
+                    # You'll need to make a separate API call for each currency type. 
+                    # PayPal can automatically exchange payments for some currencies,
+                    #  even when you don't hold a balance in that currency.
+                    "currency": currency
+                },
+                "sender_item_id": str(uuid.uuid1()),
+                "recipient_wallet": "PAYPAL",
+                "receiver": payout_receiver_email
+            }
+
+            payload["items"].append(item)
+    
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+        #if response.status_code == 200:
+        print("Create Order HTTP Status:", response.status_code)
+        printPPResponse(data)
+        return data
+    except Exception as e:
+        raise Exception(f"Failed to create order: {e}")
+
+
 # Only run test function in the main process
-if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-    # result = gateway.transaction.sale({
-    #     "amount": "10.00",
-    #     "credit_card": {
-    #         "expiration_date": "01/2029",
-    #         "number":"4023898493988028",
-    #     },
-    # })
+# if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+#     # result = gateway.transaction.sale({
+#     #     "amount": "10.00",
+#     #     "credit_card": {
+#     #         "expiration_date": "01/2029",
+#     #         "number":"4023898493988028",
+#     #     },
+#     # })
     
-    # # Create and start the thread
-    # thread = Thread(target=manageDisputeTest, args=(result.transaction.id,))
-    # thread.start()
-    clientToken = post_pp_client_token()
-    
-    randomUUID = str(uuid.uuid1())
-    put_stc(clientToken, randomUUID)
+#     # # Create and start the thread
+#     # thread = Thread(target=manageDisputeTest, args=(result.transaction.id,))
+#     # thread.start()
+
+#     #my leachong@paypal.com
+#     #username='AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg' #client id
+#     #password='EHVzVi_HdHuqMjQVYQQx7NF8klp7E4qrZA8GVvZSTvSZ5Vxc4lQ3Cu67Rr9OtPqvxyDC-7E5RcBXCsAj' #client secret
+
+#     #hk rcvt rcvr-hk-1@gmail.com
+#     username='AQCfBdKURR7-n-y9466s_Q66bksi4hqsVDueUhmf2dpzC7CuLv-KQdmy9ABRoRXLNIIR5mw3zXrmgtfa' #client id
+#     password='EGeA0eW3FHr5soQ7Z37J0YRyOfJMvDvzQkuAp0Q575-k7iIPSkzZ-2Z0hZ1828ApCN-VQ2nsEaDfnxgZ' #client secret
+
+#     #my rcvt leachong-my@paypal.com
+#     #username='Ab7PV4MNIymVgzPbDHNdAKtbYSRJvI9alA9lGso_dDrpgGaiVNyCbW4xO7Xb2ithkDwI1QE7ArJOKmOk' #client id
+#     #password='ENh9kVABew5fn9QFCILYOR3491n_mztetpZ8DOrSdzDRMNPzBoUE1f6b3wr8tcSj0AR5EJFkG8BFdD8D' #client secret
+
+
+#     clientToken = post_pp_client_token(username, password)
+#     receiver_email_list = [
+#         #å 'buyer-id-1@gmail.com'
+#         # 'buyer-my-2@gmail.com'
+#         # 'buyer-tw-1@gmail.com'
+#         # 'buyer-sg-1@gmail.com'
+#         # 'buyer-th-1@gmail.com'
+#     ]
+
+#     send_pp_payout(clientToken, currency="IDR", amount="10000", payout_receiver_email_list=receiver_email_list)
+
+    # randomUUID = str(uuid.uuid1())
+    # put_stc(clientToken, randomUUID)
 
 
 
