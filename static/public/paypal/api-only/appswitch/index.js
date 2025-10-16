@@ -398,9 +398,22 @@ console.info = function (...args) {
   appendLog(args.map(a => typeof a === "object" ? JSON.stringify(a) : a).join(" "), "info");
 };
 
+function parseHashParams(hash) {
+  // Remove leading '#' if present
+  hash = hash.startsWith('#') ? hash.substring(1) : hash;
+  const params = {};
+  hash.split('&').forEach(function (kv) {
+    const [key, value] = kv.split('=');
+    if (key) params[key] = value || true;
+  });
+  return params;
+}
+
 function onLoadHash() {
+  console.log('onLoadHash called, checking for hash params...');
+  console.log('Current URL hash:', window.location.hash);
   const hashParams = parseHashParams(window.location.hash);
-  console.log('Hash parameters:', hashParams);
+  console.log('Hash parameters after parsing:', hashParams);
 
   if (hashParams.approved) {
     // Buyer is returning from app switch
