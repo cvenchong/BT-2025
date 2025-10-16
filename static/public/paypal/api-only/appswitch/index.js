@@ -171,6 +171,7 @@ function setReturnFlowHandling() {
     document.addEventListener('hashchange', (e) => {
       console.log('this is auto flow return handling... ')
       const params = parseHashParams(window.location.hash);
+      console.log('Parsed hash parameters:', params);
       if (params.approved) {
         console.log('Buyer is returning from app switch with an approved order');
         // Buyer is returning from app switch with an approved order
