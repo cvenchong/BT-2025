@@ -252,8 +252,8 @@ function buildAppSwitchContext() {
   if (config.enableAppSwitch && config.deviceType === "mobile-web") {
     context = {
       mobile_web: {
-        buyer_user_agent: config.userAgent,
-        return_flow: config.returnFlow
+        return_flow: config.returnFlow,
+        buyer_user_agent: config.userAgent
       }
     };
   }
@@ -294,6 +294,7 @@ function initConfig() {
     }],
     payment_source: {
       paypal: {
+        email_address: config.payerEmail,
         experience_context: {
           brand_name: config.brandName,
           shippingPreference: config.shippingPreference,
@@ -301,9 +302,6 @@ function initConfig() {
           return_url: config.return_cancel_url,
           cancel_url: config.return_cancel_url,
           app_switch_preference: buildAppSwitchContext()
-        },
-        payer: {
-          email_address: config.payerEmail
         }
       }
     }
