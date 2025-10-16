@@ -42,7 +42,8 @@ function readConfig() {
   let returnFlow = UI.elements.returnFlowAuto.checked ? "AUTO" : "MANUAL";
 
   const BASE_URL = 'https://bt-2025.onrender.com'
-  let return_cancel_url = BASE_URL + '/public/braintree/hosted-fields/sdk/app-switch/index_new.html';
+  let return_cancel_url = BASE_URL + '/public/paypal/api-only/appswitch/index.html';
+  console.log('Return cancel URL:', return_cancel_url);
   const currencyCode = "USD";
   const amount = "10.00";
   const buyerCountry = "US";
@@ -50,6 +51,9 @@ function readConfig() {
 
   let shipping_preference = UI.elements.shippingPreference.value;
   let brand_name = UI.elements.brandName.value;
+
+
+  let { userAgent, deviceType } = getUserAgentAndDeviceType();
 
   return {
     payload,
@@ -63,7 +67,9 @@ function readConfig() {
     buyerCountry,
     intent,
     shipping_preference,
-    brand_name
+    brand_name,
+    userAgent,
+    deviceType
   };
 }
 
@@ -218,6 +224,43 @@ function setReturnFlowHandling() {
 
 }
 
+function getUserAgentAndDeviceType() {
+  const ua = navigator.userAgent;
+  console.log('User Agent:', ua);
+
+  let deviceType = "unknown";
+  // Mobile device (phone/tablet)
+  if (/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase())) {
+    // Check for in-app browser (common ones)
+    if (/FBAN|FBAV|Instagram|Line|Twitter|Snapchat|Messenger|WhatsApp|WeChat|TikTok/i.test(ua)) {
+      deviceType = "mobile-in-app-browser";
+    } else {
+      deviceType = "mobile-web";
+    }
+  } else {
+    // Desktop
+    deviceType = "desktop";
+  }
+  console.log('Detected device type:', deviceType);
+  return { userAgent: ua, deviceType: deviceType };
+}
+
+function buildAppSwitchContext() {
+  var config = readConfig();
+
+  let context;
+  if (config.enableAppSwitch && config.deviceType === "mobile-web") {
+    context = {
+      mobile_web: {
+        buyer_user_agent: config.userAgent,
+        return_flow: config.returnFlow
+      }
+    };
+  }
+  return context;
+
+}
+
 function initConfig() {
   const configToggle = UI.elements.configToggle;
   const configContent = UI.elements.configContent;
@@ -252,12 +295,12 @@ function initConfig() {
     payment_source: {
       paypal: {
         experience_context: {
+          brand_name: config.brandName,
+          shippingPreference: config.shippingPreference,
           user_action: config.userAction,
-          return_url: config.returnUrl,
-          cancel_url: config.cancelUrl,
-          app_switch_preference: {
-            launch_paypal_app: config.enableAppSwitch
-          }
+          return_url: config.return_cancel_url,
+          cancel_url: config.return_cancel_url,
+          app_switch_preference: buildAppSwitchContext()
         },
         payer: {
           email_address: config.payerEmail
@@ -424,12 +467,15 @@ function onLoadHash() {
     // Buyer has canceled app switch and returned
     console.log('Buyer canceled PayPal app switch');
   } else {
+    //it could also be a normal approve flow for web checkout, server side should handle this and redirect to confirmation page
+
     // No hash params, display standard checkout page
     console.log('No hash params, displaying standard checkout page');
     initConfig();
   }
 
 }
+
 
 function main() {
   // Your main function logic here
