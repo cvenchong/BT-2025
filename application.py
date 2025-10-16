@@ -148,6 +148,7 @@ def serve_public(filename):
             </style>
         </head>
         <body>
+            <a href="/">Main Page</a>
             <div class="container">
                 <h1>Payment Confirmation</h1>
                 <p><strong>Order ID:</strong> {order_id}</p>
