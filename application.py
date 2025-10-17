@@ -29,18 +29,27 @@ CORS(app)
 
 class PP_CREDENTIALS(Enum):
     LEACHONG = {
+        #leachong@paypal.com - SG Merchant account
         "username": "AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg",
         "password": "EHVzVi_HdHuqMjQVYQQx7NF8klp7E4qrZA8GVvZSTvSZ5Vxc4lQ3Cu67Rr9OtPqvxyDC-7E5RcBXCsAj"
     }
     LEACHONG_MY = {
+        #leachong-my@paypal.com - MY Merchant account
         "username": "Ab7PV4MNIymVgzPbDHNdAKtbYSRJvI9alA9lGso_dDrpgGaiVNyCbW4xO7Xb2ithkDwI1QE7ArJOKmOk",
         "password": "ENh9kVABew5fn9QFCILYOR3491n_mztetpZ8DOrSdzDRMNPzBoUE1f6b3wr8tcSj0AR5EJFkG8BFdD8D"
     }
     LEACHONG_HK = {
+        #rcvr-hk-1@gmail.com - HK Merchant account
         "username": "AQCfBdKURR7-n-y9466s_Q66bksi4hqsVDueUhmf2dpzC7CuLv-KQdmy9ABRoRXLNIIR5mw3zXrmgtfa",
         "password": "EGeA0eW3FHr5soQ7Z37J0YRyOfJMvDvzQkuAp0Q575-k7iIPSkzZ-2Z0hZ1828ApCN-VQ2nsEaDfnxgZ"
     }
-    FOR_FLASK = LEACHONG
+    LEACHONG_US = {
+        #rcvr-us-1@gmail.com - US Merchant account
+        "username": "AU9ntdGqTcs2jyZFOvBnl6-QOpN0dne_CHwTVoEqa129YZrGgT-bYe20POAEyF8d8ZnoiTABAcAG6iCm",
+        "password": "ED4xahC3yhqdyjoEA5IR7wUWxsQDV8-e2jGQ6ikEil2x8rPQnFNpA5MJLBwRV7IkloNpkCiihIOcaSYe"
+    }
+
+    FOR_FLASK = LEACHONG_US
 
     #my leachong@paypal.com
     #username='AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg' #client id
@@ -58,14 +67,17 @@ class PP_CREDENTIALS(Enum):
 gateway = braintree.BraintreeGateway(
     braintree.Configuration(
         braintree.Environment.Sandbox,
+        #bt cvenchong@gmail.com
         # merchant_id="9dxqqftdw4x6jfbr",
         # public_key="jvh5brdvvfkp5sc8",
         # private_key="3ede1f4c980113e88173b110124f3607"
 
+        #bt cvenchong+us@gmail.com
         merchant_id="d6dyn57dn7yysw2b",
         public_key="6285k8qst8wybnkd",
         private_key="073d630c7b39ebf0bf47d34e8c3562c7"
 
+        #chai heng account
         # merchant_id="mq3fyc7sdb4vgngm",
         # public_key="5pgtnzyxf3ctvmpw",
         # private_key="06ed8957973869330d91b2d8a89292a2"
