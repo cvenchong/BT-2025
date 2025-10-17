@@ -1496,43 +1496,43 @@ def send_pp_payout(clientToken, currency, amount, payout_receiver_email_list):
         raise Exception(f"Failed to create order: {e}")
 
 
-# Only run test function in the main process
-if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-    # result = gateway.transaction.sale({
-    #     "amount": "10.00",
-    #     "credit_card": {
-    #         "expiration_date": "01/2029",
-    #         "number":"4023898493988028",
-    #     },
-    # })
+# # Only run test function in the main process
+# if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+#     # result = gateway.transaction.sale({
+#     #     "amount": "10.00",
+#     #     "credit_card": {
+#     #         "expiration_date": "01/2029",
+#     #         "number":"4023898493988028",
+#     #     },
+#     # })
     
-    # # Create and start the thread
-    # thread = Thread(target=manageDisputeTest, args=(result.transaction.id,))
-    # thread.start()
+#     # # Create and start the thread
+#     # thread = Thread(target=manageDisputeTest, args=(result.transaction.id,))
+#     # thread.start()
 
-    #my leachong@paypal.com
-    #username='AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg' #client id
-    #password='EHVzVi_HdHuqMjQVYQQx7NF8klp7E4qrZA8GVvZSTvSZ5Vxc4lQ3Cu67Rr9OtPqvxyDC-7E5RcBXCsAj' #client secret
+#     #my leachong@paypal.com
+#     #username='AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg' #client id
+#     #password='EHVzVi_HdHuqMjQVYQQx7NF8klp7E4qrZA8GVvZSTvSZ5Vxc4lQ3Cu67Rr9OtPqvxyDC-7E5RcBXCsAj' #client secret
 
-    #hk rcvt rcvr-hk-1@gmail.com
-    username='AQCfBdKURR7-n-y9466s_Q66bksi4hqsVDueUhmf2dpzC7CuLv-KQdmy9ABRoRXLNIIR5mw3zXrmgtfa' #client id
-    password='EGeA0eW3FHr5soQ7Z37J0YRyOfJMvDvzQkuAp0Q575-k7iIPSkzZ-2Z0hZ1828ApCN-VQ2nsEaDfnxgZ' #client secret
+#     #hk rcvt rcvr-hk-1@gmail.com
+#     username='AQCfBdKURR7-n-y9466s_Q66bksi4hqsVDueUhmf2dpzC7CuLv-KQdmy9ABRoRXLNIIR5mw3zXrmgtfa' #client id
+#     password='EGeA0eW3FHr5soQ7Z37J0YRyOfJMvDvzQkuAp0Q575-k7iIPSkzZ-2Z0hZ1828ApCN-VQ2nsEaDfnxgZ' #client secret
 
-    #my rcvt leachong-my@paypal.com
-    #username='Ab7PV4MNIymVgzPbDHNdAKtbYSRJvI9alA9lGso_dDrpgGaiVNyCbW4xO7Xb2ithkDwI1QE7ArJOKmOk' #client id
-    #password='ENh9kVABew5fn9QFCILYOR3491n_mztetpZ8DOrSdzDRMNPzBoUE1f6b3wr8tcSj0AR5EJFkG8BFdD8D' #client secret
+#     #my rcvt leachong-my@paypal.com
+#     #username='Ab7PV4MNIymVgzPbDHNdAKtbYSRJvI9alA9lGso_dDrpgGaiVNyCbW4xO7Xb2ithkDwI1QE7ArJOKmOk' #client id
+#     #password='ENh9kVABew5fn9QFCILYOR3491n_mztetpZ8DOrSdzDRMNPzBoUE1f6b3wr8tcSj0AR5EJFkG8BFdD8D' #client secret
 
 
-    clientToken = post_pp_client_token(username, password)
-    receiver_email_list = [
-         'buyer-id-1@gmail.com'
-        # 'buyer-my-2@gmail.com'
-        # 'buyer-tw-1@gmail.com'
-        # 'buyer-sg-1@gmail.com'
-        # 'buyer-th-1@gmail.com'
-    ]
+#     clientToken = post_pp_client_token(username, password)
+#     receiver_email_list = [
+#          'buyer-id-1@gmail.com'
+#         # 'buyer-my-2@gmail.com'
+#         # 'buyer-tw-1@gmail.com'
+#         # 'buyer-sg-1@gmail.com'
+#         # 'buyer-th-1@gmail.com'
+#     ]
 
-    send_pp_payout(clientToken, currency="IDR", amount="1000", payout_receiver_email_list=receiver_email_list)
+#     send_pp_payout(clientToken, currency="IDR", amount="1000", payout_receiver_email_list=receiver_email_list)
 
     # randomUUID = str(uuid.uuid1())
     # put_stc(clientToken, randomUUID)
@@ -1542,6 +1542,11 @@ if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
 
 # Run the backend app
 if __name__ == "__main__":
-     app.run(debug=True)
+    # Get the PORT environment variable, or use 5000 if not set
+    portNumber = int(os.environ.get("PORT", 5000))
+    # Bind to 0.0.0.0 to allow Render to connect
+    app.run(host="0.0.0.0", port=portNumber, debug=True)
+
+    #  app.run(debug=True)
 #    app.run(host="0.0.0.0", port=8000, debug=True)
 #    app.run(debug=True, host="0.0.0.0", port=50000)
