@@ -45,8 +45,8 @@ class PP_CREDENTIALS(Enum):
     }
     LEACHONG_US = {
         #rcvr-us-1@gmail.com - US Merchant account
-        "username": "AU9ntdGqTcs2jyZFOvBnl6-QOpN0dne_CHwTVoEqa129YZrGgT-bYe20POAEyF8d8ZnoiTABAcAG6iCm",
-        "password": "ED4xahC3yhqdyjoEA5IR7wUWxsQDV8-e2jGQ6ikEil2x8rPQnFNpA5MJLBwRV7IkloNpkCiihIOcaSYe"
+        "username": "AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX",
+        "password": "EIbrrlOv2mI9okw9-YQJRNarqDUOrCOreBgEYeHkjeEh3lDMhytGCLqrIlVXrENb8GC394022048af3B"
     }
 
     FOR_FLASK = LEACHONG_US
