@@ -284,27 +284,27 @@ function initConfig() {
   const orderPayload = UI.elements.orderPayload;
   orderPayload.value = JSON.stringify({
     intent: config.intent,
-    purchase_units: [{
-      reference_id: "ref-001",
-      description: "Test purchase",
-      amount: {
-        currency_code: config.currencyCode,
-        value: config.amount
-      }
-    }],
     payment_source: {
       paypal: {
         email_address: config.payerEmail,
         experience_context: {
-          brand_name: config.brandName,
-          shippingPreference: config.shippingPreference,
+          // brand_name: config.brandName,
+          // shippingPreference: config.shippingPreference,
           user_action: config.userAction,
           return_url: config.return_cancel_url,
           cancel_url: config.return_cancel_url,
           app_switch_preference: buildAppSwitchContext()
         }
       }
-    }
+    },
+    purchase_units: [{
+      // reference_id: "ref-001",
+      // description: "Test purchase",
+      amount: {
+        currency_code: config.currencyCode,
+        value: config.amount
+      }
+    }]
   }, null, 2);
 
   // JSON validation logic
