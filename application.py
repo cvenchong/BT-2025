@@ -1336,7 +1336,7 @@ def get_pp_client_token():
     token = post_pp_client_token(username, password)
     return jsonify({"token": token})
 
-def post_pp_client_token():
+def post_pp_client_token(username=None, password=None):
     """
     GET client token by POST request with Basic Auth.
 
@@ -1352,8 +1352,9 @@ def post_pp_client_token():
         Exception: If request fails or access token is missing.
     """
     try:
-        username = PP_CREDENTIALS.FOR_FLASK.value["username"]
-        password = PP_CREDENTIALS.FOR_FLASK.value["password"]
+        if username is None or password is None:
+            username = PP_CREDENTIALS.FOR_FLASK.value["username"]
+            password = PP_CREDENTIALS.FOR_FLASK.value["password"]
         url = 'https://api-m.sandbox.paypal.com' + '/v1/oauth2/token'
         username=username  #client id
         password=password  #client secret
@@ -1496,42 +1497,42 @@ def send_pp_payout(clientToken, currency, amount, payout_receiver_email_list):
 
 
 # Only run test function in the main process
-# if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-#     # result = gateway.transaction.sale({
-#     #     "amount": "10.00",
-#     #     "credit_card": {
-#     #         "expiration_date": "01/2029",
-#     #         "number":"4023898493988028",
-#     #     },
-#     # })
+if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+    # result = gateway.transaction.sale({
+    #     "amount": "10.00",
+    #     "credit_card": {
+    #         "expiration_date": "01/2029",
+    #         "number":"4023898493988028",
+    #     },
+    # })
     
-#     # # Create and start the thread
-#     # thread = Thread(target=manageDisputeTest, args=(result.transaction.id,))
-#     # thread.start()
+    # # Create and start the thread
+    # thread = Thread(target=manageDisputeTest, args=(result.transaction.id,))
+    # thread.start()
 
-#     #my leachong@paypal.com
-#     #username='AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg' #client id
-#     #password='EHVzVi_HdHuqMjQVYQQx7NF8klp7E4qrZA8GVvZSTvSZ5Vxc4lQ3Cu67Rr9OtPqvxyDC-7E5RcBXCsAj' #client secret
+    #my leachong@paypal.com
+    #username='AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg' #client id
+    #password='EHVzVi_HdHuqMjQVYQQx7NF8klp7E4qrZA8GVvZSTvSZ5Vxc4lQ3Cu67Rr9OtPqvxyDC-7E5RcBXCsAj' #client secret
 
-#     #hk rcvt rcvr-hk-1@gmail.com
-#     username='AQCfBdKURR7-n-y9466s_Q66bksi4hqsVDueUhmf2dpzC7CuLv-KQdmy9ABRoRXLNIIR5mw3zXrmgtfa' #client id
-#     password='EGeA0eW3FHr5soQ7Z37J0YRyOfJMvDvzQkuAp0Q575-k7iIPSkzZ-2Z0hZ1828ApCN-VQ2nsEaDfnxgZ' #client secret
+    #hk rcvt rcvr-hk-1@gmail.com
+    username='AQCfBdKURR7-n-y9466s_Q66bksi4hqsVDueUhmf2dpzC7CuLv-KQdmy9ABRoRXLNIIR5mw3zXrmgtfa' #client id
+    password='EGeA0eW3FHr5soQ7Z37J0YRyOfJMvDvzQkuAp0Q575-k7iIPSkzZ-2Z0hZ1828ApCN-VQ2nsEaDfnxgZ' #client secret
 
-#     #my rcvt leachong-my@paypal.com
-#     #username='Ab7PV4MNIymVgzPbDHNdAKtbYSRJvI9alA9lGso_dDrpgGaiVNyCbW4xO7Xb2ithkDwI1QE7ArJOKmOk' #client id
-#     #password='ENh9kVABew5fn9QFCILYOR3491n_mztetpZ8DOrSdzDRMNPzBoUE1f6b3wr8tcSj0AR5EJFkG8BFdD8D' #client secret
+    #my rcvt leachong-my@paypal.com
+    #username='Ab7PV4MNIymVgzPbDHNdAKtbYSRJvI9alA9lGso_dDrpgGaiVNyCbW4xO7Xb2ithkDwI1QE7ArJOKmOk' #client id
+    #password='ENh9kVABew5fn9QFCILYOR3491n_mztetpZ8DOrSdzDRMNPzBoUE1f6b3wr8tcSj0AR5EJFkG8BFdD8D' #client secret
 
 
-#     clientToken = post_pp_client_token(username, password)
-#     receiver_email_list = [
-#         #å 'buyer-id-1@gmail.com'
-#         # 'buyer-my-2@gmail.com'
-#         # 'buyer-tw-1@gmail.com'
-#         # 'buyer-sg-1@gmail.com'
-#         # 'buyer-th-1@gmail.com'
-#     ]
+    clientToken = post_pp_client_token(username, password)
+    receiver_email_list = [
+         'buyer-id-1@gmail.com'
+        # 'buyer-my-2@gmail.com'
+        # 'buyer-tw-1@gmail.com'
+        # 'buyer-sg-1@gmail.com'
+        # 'buyer-th-1@gmail.com'
+    ]
 
-#     send_pp_payout(clientToken, currency="IDR", amount="10000", payout_receiver_email_list=receiver_email_list)
+    send_pp_payout(clientToken, currency="IDR", amount="1000", payout_receiver_email_list=receiver_email_list)
 
     # randomUUID = str(uuid.uuid1())
     # put_stc(clientToken, randomUUID)
