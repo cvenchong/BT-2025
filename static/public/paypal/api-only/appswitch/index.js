@@ -369,6 +369,16 @@ function initConfig() {
         return orderData.order_response;
       })
       .then((order_response) => {
+        //check app_switch_eligibility flag
+        // This flag indicates that the information in the Create Order request is correct, 
+        // and that PayPal has found the payer eligible. The merchant should attempt to App Switch. 
+        //app_switch_eligibility = true does not guarantee that the payer will switch to the PayPal app. 
+        // It only indicates that PayPal requests the merchant to attempt App Switch for the payer.
+        console.log('app switch experience enabled? ', config.enableAppSwitch);
+        console.log('this is a experience for return_flow: ', config.returnFlow);
+        let app_switch_eligibility = order_response?.payment_source?.paypal?.app_switch_eligibility ?? false;
+        console.log("App Switch Eligibility: ", app_switch_eligibility);
+
         //extract full page redirect url from order_response from PayPal order v2 hateos links
         let redirect_url = null;
         if ((order_response ?? null) !== null && (order_response.links ?? null) !== null) {
@@ -384,9 +394,6 @@ function initConfig() {
           console.error("No redirect_url found in order creation response");
           return;
         }
-
-        console.log('app switch experience enabled? ', config.enableAppSwitch);
-        console.log('this is a experience for return_flow: ', config.returnFlow);
 
         //trigger redirect 
         window.location.href = redirect_url;
