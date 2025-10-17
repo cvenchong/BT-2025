@@ -340,14 +340,14 @@ function initConfig() {
       return;
     }
 
-    console.log('replace orderID and customID...')
-    //how to generate random uuid in javascript
-    var orderID = crypto.randomUUID();
-    console.log("Using Order ID: ", orderID);
-    var customID = 'pp custom id ' + orderID;
-    console.log("Using Custom ID: ", customID);
-    payload.orderID = orderID;
-    payload.customID = customID;
+    // console.log('replace orderID and customID...')
+    // //how to generate random uuid in javascript
+    // var orderID = crypto.randomUUID();
+    // console.log("Using Order ID: ", orderID);
+    // var customID = 'pp custom id ' + orderID;
+    // console.log("Using Custom ID: ", customID);
+    // payload.orderID = orderID;
+    // payload.customID = customID;
 
     //detect if app switch supported. if not, opt out
 
