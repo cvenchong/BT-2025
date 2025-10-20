@@ -1543,10 +1543,10 @@ def send_pp_payout(clientToken, currency, amount, payout_receiver_email_list):
 # Run the backend app
 if __name__ == "__main__":
     # Get the PORT environment variable, or use 5000 if not set
-    portNumber = int(os.environ.get("PORT", 5000))
-    # Bind to 0.0.0.0 to allow Render to connect
-    app.run(host="0.0.0.0", port=portNumber, debug=True)
+    # portNumber = int(os.environ.get("PORT", 5000))
+    # # Bind to 0.0.0.0 to allow Render to connect
+    # app.run(host="0.0.0.0", port=portNumber, debug=True)
 
-    #  app.run(debug=True)
+    app.run(debug=True)
 #    app.run(host="0.0.0.0", port=8000, debug=True)
 #    app.run(debug=True, host="0.0.0.0", port=50000)
