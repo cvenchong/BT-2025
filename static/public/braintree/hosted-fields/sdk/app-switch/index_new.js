@@ -10,6 +10,8 @@ const buyerCountry = "US";
 const intent = 'capture';
 var state = { btClient: null, btDeviceDataCollectorInstance: null, btPayPalInstance: null, btGPInstance: null, googlePaymentClient: null, btThreeDS: null, btDeviceData: null };
 //const BASE_URL = "http://10.0.2.2:8888";
+let isResumingFromAppSwitch = false; // global state to track if resuming from app switch
+let ui_active_order = null;
 
 function appendLog(msg, type="log") {
   const logDiv = document.getElementById("log-section");
@@ -95,6 +97,24 @@ async function submitNonceToServer(nonce) {
   }
 }
 
+function createOrderInSystem(order) {
+  //post the payment to backend server
+  return fetch('/create-internal-order', {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      order: order,
+    }),
+  }).then(function (response) {
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    return response.json();
+  });
+}
+
 async function initBT() {
     console.log("Attempting to get client token");
     var clientToken = await getClientToken();
@@ -138,8 +158,37 @@ async function initBT() {
               };
 
               console.log("createPaymentRequestOptions: ", createPaymentRequestOptions);
-              
-              return paypalCheckoutInstance.createPayment(createPaymentRequestOptions);
+              //return paypalCheckoutInstance.createPayment(createPaymentRequestOptions);
+              return new Promise(function (resolve, reject) {
+                paypalCheckoutInstance.createPayment(createPaymentRequestOptions).then(function (payment) {
+                  console.log("Payment created (Create Order) successfully: ", payment);
+                  // Create a new order in your system
+                  ui_active_order = {
+                    id: payment.id,
+                    status: "open",
+                    amount: amount,
+                    currency: currencyCode,
+                    intent: intent,
+                    merchantAccountId: merchantAccountId || null,
+                    created_at: new Date()
+                  };
+
+                  createOrderInSystem(ui_active_order).then(function (order) {
+                    console.log("Internal order created successfully: ", order);
+                    resolve(payment);
+                  }).catch(function (err) {
+                    //reset ui_active_order
+                    ui_active_order = null;
+                    console.error("Error creating order: ", err);
+                    reject(err);
+                  });
+                }).catch(function (err) {
+                  //reset ui_active_order
+                  ui_active_order = null;
+                  console.error("Error creating payment: ", err);
+                  reject(err);
+                });
+              });
             },
             onApprove: function (data, actions) {
                 console.log( 'onApprove data: ' + JSON.stringify(data, null, 2));
@@ -152,16 +201,9 @@ async function initBT() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       paymentMethodNonce: payload.nonce,
-                      merchantAccountId: merchantAccountId || null,
-                      amount: amount,
-                      payerId: payload.details.payerId,
-                      deviceData: state.deviceDataInstance ? state.deviceDataInstance.deviceData : null,
-                      intent: intent,
-                      customerId: null,
                       isDeviceDataRequired: null,
-                      returnUrl: return_cancel_url,
-                      cancelUrl: return_cancel_url
-
+                      storeInVaultOnSuccess: false,
+                      orderId: ui_active_order ? ui_active_order.id : null
                     })
                   }).then(function(response){ 
                     return response.json(); // Parse the JSON from the response
@@ -173,6 +215,32 @@ async function initBT() {
                 });
             },
             onCancel: function (data) {
+              console.log('onCancel triggered, data: ', data);
+              console.log("Current active order before onCancel triggered: ", ui_active_order);
+              // Handle the cancellation
+              if (ui_active_order && isResumingFromAppSwitch) {
+                console.log("Resuming from app switch cancellation, checking order status for order ID: ", ui_active_order.id);
+                //check with backend to see if order is still open
+                fetch('/api/appswitch/orders/' + ui_active_order.id, {
+                  method: 'GET',
+                  headers: { 'Content-Type': 'application/json' }
+                }).then(function(response) {
+                  return response.json();
+                }).then(function(data) {
+                  console.log("Order status check response: ", data);
+                  // Handle the response from the server
+
+                  //if data.status is still open, we can consider it cancelled
+                  if (data.status === "open") {
+                    console.log("Order is still open, considering it cancelled. Removing active order.");
+                  } else {
+                    console.log("Order status is not open (status: " + data.status + "), it may have been processed. Please verify.");
+                  }
+                }).catch(function(err) {
+                  console.error("Error checking order status: ", err);
+                });
+              }
+
               console.log('PayPal payment cancelled', JSON.stringify(data, 0, 2));
             },
             onError: function (err) {
@@ -183,10 +251,15 @@ async function initBT() {
           // If you support app switch, depending on the browser the buyer may end up in a new tab
           // To trigger completion of the flow, execute the code below after re-instantiating buttons
           if (button.hasReturned()) {
-            console.log("App switch completed => button.resume() is called.."); 
+            console.log("App switch has returned to the browser"); 
+            
+            //set a global state to indicate resuming from app switch
+            isResumingFromAppSwitch = true;
+            console.log("Resuming the PayPal button flow after app switch");
             button.resume();
             
           } else {
+            isResumingFromAppSwitch = false;
             button.render('#paypal-button').then(function () {
               // The PayPal button will be rendered in an html element with the ID
               // 'paypal-button-container'. This function will be called when the PayPal button

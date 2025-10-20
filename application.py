@@ -128,6 +128,8 @@ class SUBSCRIPTION_PLAN_ID(Enum): #support min month. No weekly billing cycle.
 
 DEFAULT_PLAN_ID = SUBSCRIPTION_PLAN_ID.MONTHLY_EUR_9.value
 
+#a simple list of order objects to keep track of active orders
+active_orders = []
 
 @app.route("/", methods=["GET"])
 def index():
@@ -535,6 +537,77 @@ def api_lpm_transaction():
         error_messages = [f"{x.code}: {x.message}" for x in result.errors.deep_errors]
         return jsonify({ "success": False, "error_type": "validation", "error_message": "; ".join(error_messages) }), 422
 
+@app.route("/api/appswitch/orders/<order_id>", methods=["GET"])
+def api_appswitch_get_order(order_id):
+    active_order = findActiveOrder(order_id)
+    if not active_order:
+        return jsonify({ "success": False, "error_type": "validation", "error_message": "Invalid order ID" }), 400
+
+    return jsonify({
+        "success": True,
+        "order": active_order
+    })
+
+
+@app.route("/api/payments/paypal/checkout_appswitch", methods=["POST"])
+def api_paypal_checkout_appswitch():
+    """One-time PayPal checkout: create transaction from nonce (after order approved)
+    Used by: templates/paypal.html
+    Body: { paymentMethodNonce, amount, submitForSettlement, merchantAccountId, storeInVaultOnSuccess }
+    """
+    data = request.get_json() or {}
+    #findActiveOrder
+    active_order = findActiveOrder(data.get("orderId"))
+    if not active_order:
+        return jsonify({ "success": False, "error_type": "validation", "error_message": "Invalid order ID" }), 400
+
+    if not matchActiveOrderStatus(active_order, "open"):
+        return jsonify({ "success": False, "error_type": "validation", "error_message": "Order already processed" }), 400
+
+    amount = active_order.get("amount")
+    order_id = active_order.get("id")
+    merchant_account_id = active_order.get("merchantAccountId")
+
+    nonce = data.get("paymentMethodNonce")
+
+    #if intent is capture, then submitForSettlement is true, else False
+    submit_for_settlement = False
+    if active_order.get("intent") == "capture":
+        submit_for_settlement = True
+
+    store_in_vault = data.get("storeInVaultOnSuccess", False)
+    device_data = data.get("isDeviceDataRequired")
+    
+    if not nonce or not amount:
+        return jsonify({ "success": False, "error_type": "validation", "error_message": "paymentMethodNonce and amount are required" }), 400
+
+    sale_req = build_playground_sale_request(amount=amount, nonce=nonce, merchant_account_id=merchant_account_id, submit_for_settlement=submit_for_settlement, device_data=device_data, order_id=order_id)
+    if store_in_vault:
+        sale_req.setdefault("options", {})["store_in_vault_on_success"] = True
+    result = gateway.transaction.sale(sale_req)
+    printBTResponse(result)
+    if result.is_success:
+        updateActiveOrderStatus(order_id, result.transaction.status)
+
+        return jsonify({
+            "success": True,
+            "transaction_id": result.transaction.id,
+            "transaction_status": result.transaction.status,
+            "order_id": result.transaction.order_id,
+            "amount": str(result.transaction.amount)
+        })
+    elif hasattr(result, 'transaction') and result.transaction:
+        return jsonify({
+            "success": False,
+            "order_id": result.transaction.order_id,
+            "error_message": result.transaction.processor_response_text,
+            "error_code": result.transaction.processor_response_code
+        }), 422
+    else:
+        error_messages = [f"{x.code}: {x.message}" for x in result.errors.deep_errors]
+        return jsonify({ "success": False, "error_type": "validation", "error_message": "; ".join(error_messages) }), 422
+
+
 
 @app.route("/api/payments/paypal/checkout", methods=["POST"])
 def api_paypal_checkout():
@@ -548,10 +621,13 @@ def api_paypal_checkout():
     merchant_account_id = data.get("merchantAccountId")
     submit_for_settlement = data.get("submitForSettlement", True)
     store_in_vault = data.get("storeInVaultOnSuccess", False)
+    device_data = data.get("deviceData")
+    order_id = data.get("orderId")
+
     if not nonce or not amount:
         return jsonify({ "success": False, "error_type": "validation", "error_message": "paymentMethodNonce and amount are required" }), 400
 
-    sale_req = build_playground_sale_request(amount=amount, nonce=nonce, merchant_account_id=merchant_account_id, submit_for_settlement=submit_for_settlement)
+    sale_req = build_playground_sale_request(amount=amount, nonce=nonce, merchant_account_id=merchant_account_id, submit_for_settlement=submit_for_settlement, device_data=device_data, order_id=order_id)
     if store_in_vault:
         sale_req.setdefault("options", {})["store_in_vault_on_success"] = True
     result = gateway.transaction.sale(sale_req)
@@ -746,6 +822,21 @@ def showSuccessfulTransaction(transaction_id):
     transaction = gateway.transaction.find(transaction_id) 
     print (transaction)
     return render_template("paymentResultPage.html", transaction=transaction, isSuccess=True, orderId=transaction.order_id)
+
+@app.route("/order/<order_id>", methods=["GET"])
+def btTransactionSearchByOrderId(order_id):
+    search_results = gateway.transaction.search(
+        braintree.TransactionSearch.order_id == order_id
+
+    )
+    if search_results:
+        transaction = search_results[0]
+        print (transaction)
+        return render_template("paymentResultPage.html", transaction=transaction, isSuccess=True, orderId=transaction.order_id)
+    else:
+        print("No transaction found for order_id: {}".format(order_id))
+        return render_template("paymentResultPage.html", orderId=order_id, isSuccess=False)
+
 
 @app.route("/error/<orderId>", methods=["GET"])
 def errorProcessingPage(orderId):
@@ -1335,6 +1426,41 @@ def get_pp_client_token():
 
     token = post_pp_client_token(username, password)
     return jsonify({"token": token})
+
+@app.route("/create-internal-order", methods=["POST"])
+def create_internal_order():
+    data = request.json
+    print("Creating internal order with data: ", data)
+    active_orders.append(data)
+
+    # Here you would typically process the order creation
+    return jsonify({"status": "success", "internal_order_details": data, "active_orders": active_orders})
+
+def findActiveOrder(order_id):
+    for order in active_orders:
+        if order.get("id") == order_id:
+            return order
+    return None
+
+def removeActiveOrder(order_id):
+    global active_orders
+    active_orders = [order for order in active_orders if order.get("id") != order_id]
+
+def updateActiveOrderStatus(order_id, new_status):
+    order = findActiveOrder(order_id)    
+    if order:
+        order["status"] = new_status
+        return True
+    return False
+
+def matchActiveOrderStatus(order_id, expected_status):
+    order = findActiveOrder(order_id)    
+    if order:
+        return order.get("status") == expected_status
+    return False
+
+
+
 
 def post_pp_client_token(username=None, password=None):
     """
