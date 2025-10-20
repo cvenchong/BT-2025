@@ -217,8 +217,8 @@ async function initBT() {
             onCancel: function (data) {
               console.log('onCancel triggered, data: ', data);
               // Handle the cancellation
-              if (ui_active_order && isResumingFromAppSwitch) {
-                console.log("Resuming from app switch cancellation, checking order status for order ID: ", ui_active_order.id);
+              if (ui_active_order) {
+                console.log("May or May not be resuming from app switch cancellation, checking order status in server for order ID: ", ui_active_order.id);
                 //check with backend to see if order is still open
                 fetch('/api/appswitch/orders/' + ui_active_order.id, {
                   method: 'GET',
