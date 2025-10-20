@@ -192,7 +192,7 @@ async function initBT() {
             },
             onApprove: function (data, actions) {
                 console.log( 'onApprove data: ' + JSON.stringify(data, null, 2));
-                let on_approved_order_id = data.OrderID;
+                let on_approved_order_id = data.orderID;
                 // Submit payload.nonce to your server
                 return paypalCheckoutInstance.tokenizePayment(data).then(function (payload) {
                   console.log( 'tokenizePayment returned payload: ' + JSON.stringify(payload, null, 2));
