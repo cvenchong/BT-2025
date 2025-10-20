@@ -192,9 +192,12 @@ async function initBT() {
             },
             onApprove: function (data, actions) {
                 console.log( 'onApprove data: ' + JSON.stringify(data, null, 2));
+                let on_approved_order_id = data.OrderID;
                 // Submit payload.nonce to your server
                 return paypalCheckoutInstance.tokenizePayment(data).then(function (payload) {
                   console.log( 'tokenizePayment returned payload: ' + JSON.stringify(payload, null, 2));
+                  console.log('order id: ', on_approved_order_id);
+                  
                   // Submit payload.nonce to your server
                   return fetch('/api/payments/paypal/checkout_appswitch', {
                     method: 'POST',
@@ -203,7 +206,7 @@ async function initBT() {
                       paymentMethodNonce: payload.nonce,
                       isDeviceDataRequired: null,
                       storeInVaultOnSuccess: false,
-                      orderId: ui_active_order ? ui_active_order.id : null
+                      orderId: on_approved_order_id
                     })
                   }).then(function(response){ 
                     return response.json(); // Parse the JSON from the response
