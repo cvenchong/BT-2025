@@ -233,7 +233,7 @@ async function initBT() {
                   // Handle the response from the server
 
                   //if data.status is still open, we can consider it cancelled
-                  if (data.status === "open") {
+                  if (data.order.status === "open") {
                     console.log("Order is still open, considering it cancelled. Removing active order.");
                   } else {
                     console.log("Order id: " + data.order.id + ", has already been processed. (status: " + data.order.status + "). It may have been processed in another tab/app. You can safely close this tab oonce your payment is done in the other tab/app.");
