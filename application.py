@@ -135,6 +135,39 @@ active_orders = []
 def index():
     return render_template("index.html")
 
+@app.route('/order-summary/<order_id>', methods=["GET"])
+def serve_order_confirmation(order_id):
+    print("Serving order summary for order_id: ", order_id)
+
+    order = findActiveOrder(order_id)
+    order_details_json = json.dumps(order, indent=2)
+
+
+    html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Order Summary</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; }}
+                .container {{ max-width: 700px; margin: auto; background: #f7f7f7; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px #ccc; }}
+                h1 {{ color: #0070ba; }}
+                pre {{ background: #222; color: #eee; padding: 16px; border-radius: 6px; font-size: 0.95em; overflow-x: auto; }}
+            </style>
+        </head>
+        <body>
+            <a href="/">Main Page</a>
+            <div class="container">
+                <h1>Payment Summary</h1>
+                <p><strong>Order ID:</strong> {order.id}</p>
+                <h2>Order Details</h2>
+                <pre>{order_details_json}</pre>
+            </div>
+        </body>
+        </html>
+        """
+    return html
+
 @app.route('/public/<path:filename>')
 def serve_public(filename):
     print("Serving public file: ", filename)
@@ -551,32 +584,28 @@ def api_appswitch_get_order(order_id):
 
 @app.route("/api/payments/paypal/checkout_appswitch", methods=["POST"])
 def api_paypal_checkout_appswitch():
-    """One-time PayPal checkout: create transaction from nonce (after order approved)
-    Used by: templates/paypal.html
-    Body: { paymentMethodNonce, amount, submitForSettlement, merchantAccountId, storeInVaultOnSuccess }
-    """
     data = request.get_json() or {}
+    print("PayPal Checkout App Switch payload:", data)
+    nonce = data.get("paymentMethodNonce")
+    store_in_vault = data.get("storeInVaultOnSuccess", False)
+    device_data = data.get("isDeviceDataRequired")
+
     #findActiveOrder
     active_order = findActiveOrder(data.get("orderId"))
     if not active_order:
         return jsonify({ "success": False, "error_type": "validation", "error_message": "Invalid order ID" }), 400
 
-    if not matchActiveOrderStatus(active_order, "open"):
+    if not matchActiveOrderStatus(active_order.get("id"), "open"):
         return jsonify({ "success": False, "error_type": "validation", "error_message": "Order already processed" }), 400
 
     amount = active_order.get("amount")
     order_id = active_order.get("id")
     merchant_account_id = active_order.get("merchantAccountId")
 
-    nonce = data.get("paymentMethodNonce")
-
     #if intent is capture, then submitForSettlement is true, else False
     submit_for_settlement = False
     if active_order.get("intent") == "capture":
         submit_for_settlement = True
-
-    store_in_vault = data.get("storeInVaultOnSuccess", False)
-    device_data = data.get("isDeviceDataRequired")
     
     if not nonce or not amount:
         return jsonify({ "success": False, "error_type": "validation", "error_message": "paymentMethodNonce and amount are required" }), 400
@@ -1454,9 +1483,10 @@ def updateActiveOrderStatus(order_id, new_status):
     return False
 
 def matchActiveOrderStatus(order_id, expected_status):
-    order = findActiveOrder(order_id)    
+    order = findActiveOrder(order_id)
     if order:
         return order.get("status") == expected_status
+
     return False
 
 

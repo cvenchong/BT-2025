@@ -104,9 +104,9 @@ function createOrderInSystem(order) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      order: order,
-    }),
+    body: JSON.stringify(
+      order
+    ),
   }).then(function (response) {
     if (!response.ok) {
       throw new Error("Network response was not ok");
@@ -164,7 +164,7 @@ async function initBT() {
                   console.log("Payment created (Create Order) successfully: ", payment);
                   // Create a new order in your system
                   ui_active_order = {
-                    id: payment.id,
+                    id: payment,
                     status: "open",
                     amount: amount,
                     currency: currencyCode,
@@ -196,7 +196,7 @@ async function initBT() {
                 return paypalCheckoutInstance.tokenizePayment(data).then(function (payload) {
                   console.log( 'tokenizePayment returned payload: ' + JSON.stringify(payload, null, 2));
                   // Submit payload.nonce to your server
-                  return fetch('/api/payments/paypal/checkout', {
+                  return fetch('/api/payments/paypal/checkout_appswitch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -216,7 +216,6 @@ async function initBT() {
             },
             onCancel: function (data) {
               console.log('onCancel triggered, data: ', data);
-              console.log("Current active order before onCancel triggered: ", ui_active_order);
               // Handle the cancellation
               if (ui_active_order && isResumingFromAppSwitch) {
                 console.log("Resuming from app switch cancellation, checking order status for order ID: ", ui_active_order.id);
@@ -234,7 +233,9 @@ async function initBT() {
                   if (data.status === "open") {
                     console.log("Order is still open, considering it cancelled. Removing active order.");
                   } else {
-                    console.log("Order status is not open (status: " + data.status + "), it may have been processed. Please verify.");
+                    console.log("Order id: " + ui_active_order.id + ", has already been processed. (status: " + data.status + "). It may have been processed in another tab/app. You can safely close this tab oonce your payment is done in the other tab/app.");
+                    //redirect to order summary page
+                    //window.location.href = "/order-summary/" + ui_active_order.id;
                   }
                 }).catch(function(err) {
                   console.error("Error checking order status: ", err);
