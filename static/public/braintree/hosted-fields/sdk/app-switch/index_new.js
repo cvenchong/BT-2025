@@ -233,7 +233,7 @@ async function initBT() {
                   if (data.status === "open") {
                     console.log("Order is still open, considering it cancelled. Removing active order.");
                   } else {
-                    console.log("Order id: " + ui_active_order.id + ", has already been processed. (status: " + data.status + "). It may have been processed in another tab/app. You can safely close this tab oonce your payment is done in the other tab/app.");
+                    console.log("Order id: " + data.order.id + ", has already been processed. (status: " + data.order.status + "). It may have been processed in another tab/app. You can safely close this tab oonce your payment is done in the other tab/app.");
                     //redirect to order summary page
                     //window.location.href = "/order-summary/" + ui_active_order.id;
                   }
