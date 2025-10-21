@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PayPal LIPP Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 600px; margin: auto; background: #f7f7f7; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px #ccc; }
+        h1 { color: #0070ba; }
+        pre { background: #222; color: #eee; padding: 16px; border-radius: 6px; font-size: 0.95em; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PayPal LIPP Integration Demo</h1>
+        <p>This page demonstrates the PayPal LIPP integration.</p>
+        <h2>Your Braintree Client Token:</h2>
+        <pre>{{ clientToken }}</pre>
+
+
+        <span id='lippButtonContainer'></span>
+        <script src='https://www.paypalobjects.com/js/external/api.js'></script>
+        <script>
+            paypal.use( ['login'], function (login) {
+            login.render ({
+                "appid":"AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg",
+                "scopes":"openid email https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/paypalattributes",
+                "containerid":"lippButtonContainer",
+                "responseType":"code id_Token",
+                "locale":"en-us",
+                "labelType":"LWP",
+                "buttonSize":"sm",
+                "fullPage":"true",
+                "returnurl":"http://bt-2025.onrender.com/pp/lipp"
+            });
+            });
+
+            function getAccessToken(lipp_authorization_code) {
+                url = 'https://api-m.sandbox.paypal.com/v1/oauth2/token'
+                //fetch access token from server
+                //implement basic Authorization (this should be done at server end. but for concept and quick test should be fine to do at frontend.)
+                const clientId = 'AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg';
+                const clientSecret = 'EHVzVi_HdHuqMjQVYQQx7NF8klp7E4qrZA8GVvZSTvSZ5Vxc4lQ3Cu67Rr9OtPqvxyDC-7E5RcBXCsAj';
+                const basicAuth = btoa(`${clientId}:${clientSecret}`);
+
+                payload = {
+                    grant_type: 'authorization_code',
+                    code: lipp_authorization_code
+                };
+
+                // fetch (POST) with the payload
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Basic ${basicAuth}`
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Response Data:", data);
+                    if (data.accessToken) {
+                        // Use the access token
+                        console.log("Access Token:", data.accessToken);
+
+                        //retrieve user information, including email and payer ID
+                        fetch('https://api-m.sandbox.paypal.com/v1/identity/openidconnect/userinfo/?schema=openid', {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${data.accessToken}`
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(userInfo => {
+                            console.log("User Information:", userInfo);
+                        })
+                        .catch(error => {
+                            console.error("Error fetching user information:", error);
+                        });
+                    } else {
+                        console.error("Failed to retrieve access token");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching access token:", error);
+                });
+            }
+        </script>
+    </div>
+</body>
+</html>

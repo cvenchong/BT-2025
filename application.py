@@ -215,7 +215,10 @@ def serve_public(filename):
 
 
 
-
+@app.route("/pp/lipp", methods=["GET"])
+def lipp():
+    clientToken = getClientToken()
+    return render_template("public/paypal/lipp.html", clientToken=clientToken)
 
 @app.route("/hostedfield", methods=["GET"])
 def hostedField():
