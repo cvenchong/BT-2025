@@ -26,6 +26,11 @@
             const lippAuthorizationCode = urlParams.get('code');
             if (lippAuthorizationCode) {
                 console.log("LIPP Authorization Code:", lippAuthorizationCode);
+                //console out each of the url params
+                urlParams.forEach((value, key) => {
+                    console.log(`URL Parameter: ${key} = ${value}`);
+                });
+
                 getAccessToken(lippAuthorizationCode);
             }else{
                 console.log("Init LIPP...");
