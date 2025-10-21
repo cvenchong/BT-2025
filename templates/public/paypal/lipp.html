@@ -38,7 +38,7 @@
                 login.render ({
                     "appid":"AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg",
                     "authend": "sandbox",
-                    "scopes":"openid email https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/paypalattributes",
+                    "scopes":"openid email https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/paypalattributes address",
                     "containerid":"lippButtonContainer",
                     "responseType":"code id_Token",
                     "locale":"en-us",
@@ -65,14 +65,14 @@
                     code: lipp_authorization_code
                 };
 
-                // fetch (POST) with the payload
+                // fetch (POST) with the payload. it should be application/x-www-form-urlencoded. 
                 fetch(url, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
                         'Authorization': `Basic ${basicAuth}`
                     },
-                    body: JSON.stringify(payload)
+                    body: new URLSearchParams(payload).toString()
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -81,11 +81,11 @@
                         // Use the access token
                         console.log("Access Token:", data.accessToken);
 
-                        //retrieve user information, including email and payer ID
+                        //retrieve user information. application/x-www-form-urlencoded
                         fetch('https://api-m.sandbox.paypal.com/v1/identity/openidconnect/userinfo/?schema=openid', {
                             method: 'GET',
                             headers: {
-                                'Content-Type': 'application/json',
+                                'Content-Type': 'application/x-www-form-urlencoded',
                                 'Authorization': `Bearer ${data.accessToken}`
                             }
                         })
