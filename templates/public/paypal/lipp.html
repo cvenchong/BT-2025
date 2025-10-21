@@ -23,6 +23,7 @@
             paypal.use( ['login'], function (login) {
             login.render ({
                 "appid":"AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg",
+                "authend": "sandbox",
                 "scopes":"openid email https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/paypalattributes",
                 "containerid":"lippButtonContainer",
                 "responseType":"code id_Token",
@@ -30,7 +31,7 @@
                 "labelType":"LWP",
                 "buttonSize":"sm",
                 "fullPage":"true",
-                "returnurl":"http://bt-2025.onrender.com/pp/lipp"
+                "returnurl":"https://bt-2025.onrender.com/pp/lipp"
             });
             });
 
