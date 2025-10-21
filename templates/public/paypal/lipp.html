@@ -20,20 +20,32 @@
         <span id='lippButtonContainer'></span>
         <script src='https://www.paypalobjects.com/js/external/api.js'></script>
         <script>
-            paypal.use( ['login'], function (login) {
-            login.render ({
-                "appid":"AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg",
-                "authend": "sandbox",
-                "scopes":"openid email https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/paypalattributes",
-                "containerid":"lippButtonContainer",
-                "responseType":"code id_Token",
-                "locale":"en-us",
-                "labelType":"LWP",
-                "buttonSize":"sm",
-                "fullPage":"true",
-                "returnurl":"https://bt-2025.onrender.com/pp/lipp"
+            //check in url to see if there is any request params
+            const urlParams = new URLSearchParams(window.location.search);
+            console.log("URL Parameters:", urlParams);
+            const lippAuthorizationCode = urlParams.get('code');
+            if (lippAuthorizationCode) {
+                console.log("LIPP Authorization Code:", lippAuthorizationCode);
+                getAccessToken(lippAuthorizationCode);
+            }else{
+                console.log("Init LIPP...");
+                paypal.use( ['login'], function (login) {
+                login.render ({
+                    "appid":"AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg",
+                    "authend": "sandbox",
+                    "scopes":"openid email https://uri.paypal.com/services/paypalattributes https://uri.paypal.com/services/paypalattributes",
+                    "containerid":"lippButtonContainer",
+                    "responseType":"code id_Token",
+                    "locale":"en-us",
+                    "labelType":"LWP",
+                    "buttonSize":"sm",
+                    "fullPage":"true",
+                    "returnurl":"https://bt-2025.onrender.com/pp/lipp"
+                });
             });
-            });
+            }
+
+
 
             function getAccessToken(lipp_authorization_code) {
                 url = 'https://api-m.sandbox.paypal.com/v1/oauth2/token'
