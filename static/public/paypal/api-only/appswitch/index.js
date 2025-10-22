@@ -293,7 +293,8 @@ function initConfig() {
           user_action: config.userAction,
           return_url: config.return_cancel_url,
           cancel_url: config.return_cancel_url,
-          app_switch_preference: buildAppSwitchContext()
+          //app_switch_preference: buildAppSwitchContext() //jssdk will use preference instead of context
+          app_switch_context: buildAppSwitchContext()
         }
       }
     },
