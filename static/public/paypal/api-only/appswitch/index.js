@@ -468,6 +468,8 @@ function parseHashParams(hash) {
   hash.split('&').forEach(function (kv) {
     const [key, value] = kv.split('=');
     if (key) {
+      //if key == onApprove, set the key name to approved
+
       params[key] = value || true;
       console.log(`Parsed hash param: ${key} = ${value || true}`);
     }

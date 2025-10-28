@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Processing…</title>
+  <style>body{font-family:system-ui;margin:16px}</style>
+</head>
+<body>
+  <h3>Processing PayPal return…</h3>
+  <pre id="log">Reading fragment…</pre>
+  <script>
+    (function () {
+      const fragment = (location.hash || '').slice(1);
+      const params = new URLSearchParams(fragment);
+      const data = Object.fromEntries(params);
+      const key = 'pp-return-' + Date.now();
+      sessionStorage.setItem(key, JSON.stringify(data));
+      const next = `/#/confirm?ppKey=${encodeURIComponent(key)}`;
+      document.getElementById('log').textContent =
+        `Captured: ${JSON.stringify(data,null,2)}\nRedirecting to ${next}`;
+      setTimeout(() => location.replace(next), 200);
+    })();
+  </script>
+</body>
+</html>
