@@ -172,10 +172,53 @@ function setReturnFlowHandling() {
   var returnFlow = document.querySelector('input[name="returnFlow"]:checked').value;
   console.log("Selected return flow:", returnFlow);
 
+  document.addEventListener('visibilitychange', (e) => {
+    // call your server API to make a request to PayPal to get the order status and buyer cancellation status (if applicable)
+    console.log('Visibility changed. Checking order status...');
+    console.log('Visibility changed event detected:', e);
+    
+    //If #change event was triggered then cancel this event (to avoid multiple payment/order calls from both the listeners)
+    const hashParams = parseHashParams(window.location.hash);
+
+    //output all the hash parameters
+    console.log('Hash parameters on visibility change:', hashParams);
+
+    // if (hashParams.approved || hashParams.cancelled) {
+    //   console.log('Hash parameters indicate approval or cancellation.');
+    //   //console log all the hash parameters 
+    //   console.log('Hash parameters:', hashParams);
+    //   //Wil be handled by hashChange. Exit
+    //   return;
+    // }
+
+    // const orderResponse = getOrderResponse(orderId);
+    // console.log('Order response:', orderResponse);
+
+    // const orderStatus = orderResponse.status;
+    // const cancelledActivity = orderResponse?.payment_source?.paypal?.experience_status;
+
+    // //Order Approved
+    // if (orderStatus === 'approved') {
+    //   // Capture payment & redirect to confirmation page
+    // }
+
+    // //Buyer cancels transaction
+    // else if (orderStatus !== 'approved' && cancelledActivity == 'cancelled') {
+    //   // Buyer app switched to paypal but closed checkout before approving the transaction. 
+    //   // Display Cart page again or take the appropriate "cancel" action 
+    // }
+
+    // else {
+    //   // Display a modal to complete payment on the PayPal App
+    // }
+  });
+
+
   if (returnFlow === "AUTO") {
     //init visbility change handling - Use the visibilitychange event listener to handle scenarios where the payer abandons the checkout
     document.addEventListener('hashchange', (e) => {
       console.log('this is auto flow return handling... ')
+      console.log('Hash changed event detected:', e);
       const params = parseHashParams(window.location.hash);
       if (params.approved) {
         console.log('Buyer is returning from app switch with an approved order');
@@ -190,41 +233,7 @@ function setReturnFlowHandling() {
   }
   else {
     //init manual flow handling
-    document.addEventListener('visibilitychange', (e) => {
-      // call your server API to make a request to PayPal to get the order status and buyer cancellation status (if applicable)
-      console.log('Visibility changed. Checking order status...');
-
-      //If #change event was triggered then cancel this event (to avoid multiple payment/order calls from both the listeners)
-      const hashParams = parseHashParams(window.location.hash);
-      if (hashParams.approved || hashParams.cancelled) {
-        console.log('Hash parameters indicate approval or cancellation.');
-        //console log all the hash parameters 
-        console.log('Hash parameters:', hashParams);
-        //Wil be handled by hashChange. Exit
-        return;
-      }
-
-      const orderResponse = getOrderResponse(orderId);
-      console.log('Order response:', orderResponse);
-
-      const orderStatus = orderResponse.status;
-      const cancelledActivity = orderResponse?.payment_source?.paypal?.experience_status;
-
-      //Order Approved
-      if (orderStatus === 'approved') {
-        // Capture payment & redirect to confirmation page
-      }
-
-      //Buyer cancels transaction
-      else if (orderStatus !== 'approved' && cancelledActivity == 'cancelled') {
-        // Buyer app switched to paypal but closed checkout before approving the transaction. 
-        // Display Cart page again or take the appropriate "cancel" action 
-      }
-
-      else {
-        // Display a modal to complete payment on the PayPal App
-      }
-    });
+    console.log('this is manual flow return handling... ');
   }
 
 }
@@ -361,7 +370,7 @@ function initConfig() {
       console.log("App Switch is not enabled. Opting out. Removing app_switch_context from payload.");
       //remove app_switch_context from payload
       delete payload.app_switch_context;
-    }else{
+    } else {
       setReturnFlowHandling();
     }
 
