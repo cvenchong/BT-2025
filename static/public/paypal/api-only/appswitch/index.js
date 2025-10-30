@@ -214,7 +214,7 @@ function setReturnFlowHandling() {
     }
   });
 
-  window.addEventListener('hashchange', (e) => {
+  document.addEventListener('hashchange', (e) => {
     console.log('Hash changed event detected:', e);
     const params = parseHashParams(window.location.hash);
     if (params.approved) {
