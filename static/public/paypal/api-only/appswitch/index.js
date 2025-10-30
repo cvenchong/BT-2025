@@ -214,7 +214,7 @@ function setReturnFlowHandling() {
     }
   });
 
-  document.addEventListener('hashchange', (e) => {
+  window.addEventListener('hashchange', (e) => { //document stated to be a document level event for hashchange which is incorrect. 
     console.log('Hash changed event detected:', e);
     const params = parseHashParams(window.location.hash);
     if (params.approved) {
