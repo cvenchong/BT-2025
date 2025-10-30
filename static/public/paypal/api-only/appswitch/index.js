@@ -174,14 +174,13 @@ function setReturnFlowHandling() {
 
   document.addEventListener('visibilitychange', (e) => {
     // call your server API to make a request to PayPal to get the order status and buyer cancellation status (if applicable)
-    console.log('Visibility changed. Checking order status...');
     console.log('Visibility changed event detected:', e);
     
+    //log window location hash
+    console.log('Current URL hash on visibility change:', window.location.hash);
+
     //If #change event was triggered then cancel this event (to avoid multiple payment/order calls from both the listeners)
     const hashParams = parseHashParams(window.location.hash);
-
-    //output all the hash parameters
-    console.log('Hash parameters on visibility change:', hashParams);
 
     // if (hashParams.approved || hashParams.cancelled) {
     //   console.log('Hash parameters indicate approval or cancellation.');
@@ -217,7 +216,6 @@ function setReturnFlowHandling() {
   if (returnFlow === "AUTO") {
     //init visbility change handling - Use the visibilitychange event listener to handle scenarios where the payer abandons the checkout
     document.addEventListener('hashchange', (e) => {
-      console.log('this is auto flow return handling... ')
       console.log('Hash changed event detected:', e);
       const params = parseHashParams(window.location.hash);
       if (params.approved) {
