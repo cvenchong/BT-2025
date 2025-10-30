@@ -80,3 +80,6 @@ node_modules/
 
 # VSCode
 .vscode/ 
+
+# frontend build
+frontend/
