@@ -214,7 +214,7 @@ function setReturnFlowHandling() {
     }
   });
 
-  document.addEventListener('hashchange', (e) => {
+  window.addEventListener('hashchange', (e) => {
     console.log('Hash changed event detected:', e);
     const params = parseHashParams(window.location.hash);
     if (params.approved) {
@@ -222,9 +222,9 @@ function setReturnFlowHandling() {
       // Buyer is returning from app switch with an approved order
       // Verify the order approval, complete payment
       // & redirect to confirmation page to complete flow
-    } else if (params.canceled) {
-      // Buyer canceled PayPal app switch
-      console.log('Buyer canceled PayPal app switch');
+    } else if (params.cancelled) {
+      // Buyer cancelled PayPal app switch
+      console.log('Buyer cancelled PayPal app switch');
     }
   })
 
@@ -239,9 +239,9 @@ function setReturnFlowHandling() {
   //       // Buyer is returning from app switch with an approved order
   //       // Verify the order approval, complete payment
   //       // & redirect to confirmation page to complete flow
-  //     } else if (params.canceled) {
-  //       // Buyer canceled PayPal app switch
-  //       console.log('Buyer canceled PayPal app switch');
+  //     } else if (params.cancelled) {
+  //       // Buyer cancelled PayPal app switch
+  //       console.log('Buyer cancelled PayPal app switch');
   //     }
   //   })
   // }
@@ -497,16 +497,16 @@ function parseHashParams(hash) {
       console.log(`Parsed hash param: ${key} = ${value || true}`);
     }
   });
-  //check if onApprove or onCancel exist and map to approved/canceled
+  //check if onApprove or onCancel exist and map to approved/cancelled
   if (params.onApprove) {
     params.approved = params.onApprove;
     delete params.onApprove;
     console.log('Mapped onApprove to approved');
   }
   if (params.onCancel) {
-    params.canceled = params.onCancel;
+    params.cancelled = params.onCancel;
     delete params.onCancel;
-    console.log('Mapped onCancel to canceled');
+    console.log('Mapped onCancel to cancelled');
   }
   return params;
 }
@@ -521,9 +521,9 @@ function onLoadHash() {
     // Buyer is returning from app switch
     console.log('Buyer is returning from app switch with an approved order');
     // Complete payment & redirect to confirmation page
-  } else if (hashParams.canceled) {
-    // Buyer has canceled app switch and returned
-    console.log('Buyer canceled PayPal app switch');
+  } else if (hashParams.cancelled) {
+    // Buyer has cancelled app switch and returned
+    console.log('Buyer cancelled PayPal app switch');
   } else {
     //it could also be a normal approve flow for web checkout, server side should handle this and redirect to confirmation page
 
