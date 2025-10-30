@@ -1065,6 +1065,16 @@ def post_pp_capture_auth(clientToken, authID, FN_SESSION_ID):
         raise Exception(f"Failed to capture order: {e}")
 
 
+@app.route("/pp/capture_order", methods=["POST"])
+def capture_order():
+    data = request.get_json()
+    print("Capture Order Req received, data: ", data)  # Print the whole payload
+    clientToken = post_pp_client_token()
+    orderID = data.get("orderID")
+    FN_SESSION_ID = data.get("f")
+    response = post_pp_capture_order(clientToken, orderID, FN_SESSION_ID)
+    return jsonify(response)
+
 def post_pp_capture_order(clientToken, orderID, FN_SESSION_ID):
     try:
         url = 'https://api-m.sandbox.paypal.com/v2/checkout/orders/' + orderID +'/capture'
@@ -1116,6 +1126,13 @@ def patch_pp_order(clientToken, orderID, FN_SESSION_ID):
         return True
     except Exception as e:
         raise Exception(f"Failed to patch order: {e}")
+
+@app.route("/pp/order_details", methods=["GET"])
+def order_details():
+    orderID = request.args.get("orderID")
+    clientToken = post_pp_client_token()
+    response = get_pp_order_details(clientToken, orderID)
+    return jsonify(response)
 
 def get_pp_order_details(clientToken, orderID):
     try:

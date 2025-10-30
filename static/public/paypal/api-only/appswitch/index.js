@@ -186,13 +186,14 @@ function setReturnFlowHandling() {
 
     if (hashParams.approved || hashParams.cancelled) {
       console.log('Hash parameters indicate approval or cancellation.');
-      //console log all the hash parameters 
-      console.log('Hash parameters:', hashParams);
-      //Wil be handled by hashChange. Exit
+      //console log all the hash parameters
+      console.log('Exiting visibility change event. hashChange will handle the flow.');
+      //Will be handled by hashChange. Exit
       return;
     }
 
-    const orderResponse = getOrderResponse(orderId);
+    console.log('No relevant hash parameters found. Proceeding with visibility change handling.');
+    const orderResponse = getOrderDetails(orderId);
     console.log('Order response:', orderResponse);
 
     const orderStatus = orderResponse.status;
@@ -201,55 +202,90 @@ function setReturnFlowHandling() {
     //Order Approved
     if (orderStatus === 'approved') {
       // Capture payment & redirect to confirmation page
+      captureOrder(orderId);
+      console.log('Order approved. Capturing payment and redirecting to confirmation page.');      
     }
 
     //Buyer cancels transaction
     else if (orderStatus !== 'approved' && cancelledActivity == 'cancelled') {
       // Buyer app switched to paypal but closed checkout before approving the transaction. 
       // Display Cart page again or take the appropriate "cancel" action 
+      console.log('Buyer cancelled PayPal app switch. Displaying cart page again.');
     }
 
     else {
       // Display a modal to complete payment on the PayPal App
+      console.log('No action taken. Order status:', orderStatus, 'Cancelled activity:', cancelledActivity);
     }
   });
 
-  window.addEventListener('hashchange', (e) => { //document stated to be a document level event for hashchange which is incorrect. 
-    console.log('Hash changed event detected:', e);
-    const params = parseHashParams(window.location.hash);
-    if (params.approved) {
-      console.log('Buyer is returning from app switch with an approved order');
-      // Buyer is returning from app switch with an approved order
-      // Verify the order approval, complete payment
-      // & redirect to confirmation page to complete flow
-    } else if (params.cancelled) {
-      // Buyer cancelled PayPal app switch
-      console.log('Buyer cancelled PayPal app switch');
+  if (returnFlow === "AUTO") {
+    //init visbility change handling - Use the visibilitychange event listener to handle scenarios where the payer abandons the checkout
+    window.addEventListener('hashchange', (e) => { //document stated to be a document level event for hashchange which is incorrect. 
+      console.log('Hash changed event detected:', e);
+      const params = parseHashParams(window.location.hash);
+      if (params.approved) {
+        console.log('Buyer is returning from app switch with an approved order');
+        // Buyer is returning from app switch with an approved order
+        // Verify the order approval, complete payment
+        // & redirect to confirmation page to complete flow
+      } else if (params.cancelled) {
+        // Buyer cancelled PayPal app switch
+        console.log('Buyer cancelled PayPal app switch');
+      }
+    });
+  }
+  else {
+    //init manual flow handling
+    console.log('this is manual flow return handling... ');
+  }
+
+}
+
+function captureOrder(orderId) {
+  console.log('Capturing payment for order ID:', orderId);
+  // Implement payment capture logic here
+  const response = fetch('/pp/capture_order', {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ orderID: orderId})
+  })
+    .then(async (response) => {
+      return response.json();
+    })
+    .then((captureData) => {
+      console.log("Order captured:", captureData);
+      return captureData;
+    })
+    .catch((error) => {
+      console.error("Error capturing order:", error);
+    });
+  return response;
+}
+
+function getOrderDetails(orderId) {
+  console.log('Fetching order response for order ID:', orderId);
+  // Implement logic to fetch order response from server or PayPal API
+  
+  const response = fetch('/pp/order_details?orderID=' + orderId, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
     }
   })
-
-
-  // if (returnFlow === "AUTO") {
-  //   //init visbility change handling - Use the visibilitychange event listener to handle scenarios where the payer abandons the checkout
-  //   document.addEventListener('hashchange', (e) => {
-  //     console.log('Hash changed event detected:', e);
-  //     const params = parseHashParams(window.location.hash);
-  //     if (params.approved) {
-  //       console.log('Buyer is returning from app switch with an approved order');
-  //       // Buyer is returning from app switch with an approved order
-  //       // Verify the order approval, complete payment
-  //       // & redirect to confirmation page to complete flow
-  //     } else if (params.cancelled) {
-  //       // Buyer cancelled PayPal app switch
-  //       console.log('Buyer cancelled PayPal app switch');
-  //     }
-  //   })
-  // }
-  // else {
-  //   //init manual flow handling
-  //   console.log('this is manual flow return handling... ');
-  // }
-
+    .then(async (response) => {
+      return response.json();
+    })
+    .then((orderData) => {
+      console.log("Order details fetched:", orderData);
+      return orderData;
+    })
+    .catch((error) => {
+      console.error("Error fetching order details:", error);
+    });
+  return response;
 }
 
 function getUserAgentAndDeviceType() {
