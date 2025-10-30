@@ -175,64 +175,80 @@ function setReturnFlowHandling() {
   document.addEventListener('visibilitychange', (e) => {
     // call your server API to make a request to PayPal to get the order status and buyer cancellation status (if applicable)
     console.log('Visibility changed event detected:', e);
-    
+
     //log window location hash
     console.log('Current URL hash on visibility change:', window.location.hash);
+    //when switch out, will fire visibility change. when switch back, will also fire visibility change.
+    //So we need to check the hash params to see if it's an approval or cancellation
 
     //If #change event was triggered then cancel this event (to avoid multiple payment/order calls from both the listeners)
     const hashParams = parseHashParams(window.location.hash);
 
-    // if (hashParams.approved || hashParams.cancelled) {
-    //   console.log('Hash parameters indicate approval or cancellation.');
-    //   //console log all the hash parameters 
-    //   console.log('Hash parameters:', hashParams);
-    //   //Wil be handled by hashChange. Exit
-    //   return;
-    // }
+    if (hashParams.approved || hashParams.cancelled) {
+      console.log('Hash parameters indicate approval or cancellation.');
+      //console log all the hash parameters 
+      console.log('Hash parameters:', hashParams);
+      //Wil be handled by hashChange. Exit
+      return;
+    }
 
-    // const orderResponse = getOrderResponse(orderId);
-    // console.log('Order response:', orderResponse);
+    const orderResponse = getOrderResponse(orderId);
+    console.log('Order response:', orderResponse);
 
-    // const orderStatus = orderResponse.status;
-    // const cancelledActivity = orderResponse?.payment_source?.paypal?.experience_status;
+    const orderStatus = orderResponse.status;
+    const cancelledActivity = orderResponse?.payment_source?.paypal?.experience_status;
 
-    // //Order Approved
-    // if (orderStatus === 'approved') {
-    //   // Capture payment & redirect to confirmation page
-    // }
+    //Order Approved
+    if (orderStatus === 'approved') {
+      // Capture payment & redirect to confirmation page
+    }
 
-    // //Buyer cancels transaction
-    // else if (orderStatus !== 'approved' && cancelledActivity == 'cancelled') {
-    //   // Buyer app switched to paypal but closed checkout before approving the transaction. 
-    //   // Display Cart page again or take the appropriate "cancel" action 
-    // }
+    //Buyer cancels transaction
+    else if (orderStatus !== 'approved' && cancelledActivity == 'cancelled') {
+      // Buyer app switched to paypal but closed checkout before approving the transaction. 
+      // Display Cart page again or take the appropriate "cancel" action 
+    }
 
-    // else {
-    //   // Display a modal to complete payment on the PayPal App
-    // }
+    else {
+      // Display a modal to complete payment on the PayPal App
+    }
   });
 
+  document.addEventListener('hashchange', (e) => {
+    console.log('Hash changed event detected:', e);
+    const params = parseHashParams(window.location.hash);
+    if (params.approved) {
+      console.log('Buyer is returning from app switch with an approved order');
+      // Buyer is returning from app switch with an approved order
+      // Verify the order approval, complete payment
+      // & redirect to confirmation page to complete flow
+    } else if (params.canceled) {
+      // Buyer canceled PayPal app switch
+      console.log('Buyer canceled PayPal app switch');
+    }
+  })
 
-  if (returnFlow === "AUTO") {
-    //init visbility change handling - Use the visibilitychange event listener to handle scenarios where the payer abandons the checkout
-    document.addEventListener('hashchange', (e) => {
-      console.log('Hash changed event detected:', e);
-      const params = parseHashParams(window.location.hash);
-      if (params.approved) {
-        console.log('Buyer is returning from app switch with an approved order');
-        // Buyer is returning from app switch with an approved order
-        // Verify the order approval, complete payment
-        // & redirect to confirmation page to complete flow
-      } else if (params.canceled) {
-        // Buyer canceled PayPal app switch
-        console.log('Buyer canceled PayPal app switch');
-      }
-    })
-  }
-  else {
-    //init manual flow handling
-    console.log('this is manual flow return handling... ');
-  }
+
+  // if (returnFlow === "AUTO") {
+  //   //init visbility change handling - Use the visibilitychange event listener to handle scenarios where the payer abandons the checkout
+  //   document.addEventListener('hashchange', (e) => {
+  //     console.log('Hash changed event detected:', e);
+  //     const params = parseHashParams(window.location.hash);
+  //     if (params.approved) {
+  //       console.log('Buyer is returning from app switch with an approved order');
+  //       // Buyer is returning from app switch with an approved order
+  //       // Verify the order approval, complete payment
+  //       // & redirect to confirmation page to complete flow
+  //     } else if (params.canceled) {
+  //       // Buyer canceled PayPal app switch
+  //       console.log('Buyer canceled PayPal app switch');
+  //     }
+  //   })
+  // }
+  // else {
+  //   //init manual flow handling
+  //   console.log('this is manual flow return handling... ');
+  // }
 
 }
 
@@ -481,6 +497,17 @@ function parseHashParams(hash) {
       console.log(`Parsed hash param: ${key} = ${value || true}`);
     }
   });
+  //check if onApprove or onCancel exist and map to approved/canceled
+  if (params.onApprove) {
+    params.approved = params.onApprove;
+    delete params.onApprove;
+    console.log('Mapped onApprove to approved');
+  }
+  if (params.onCancel) {
+    params.canceled = params.onCancel;
+    delete params.onCancel;
+    console.log('Mapped onCancel to canceled');
+  }
   return params;
 }
 
