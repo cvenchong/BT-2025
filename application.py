@@ -44,7 +44,7 @@ class PP_CREDENTIALS(Enum):
         "password": "EGeA0eW3FHr5soQ7Z37J0YRyOfJMvDvzQkuAp0Q575-k7iIPSkzZ-2Z0hZ1828ApCN-VQ2nsEaDfnxgZ"
     }
     LEACHONG_US = {
-        #rcvr-us-1@gmail.com - US Merchant account
+        #rcvr-us-ppcp-1@gmail.com - US Merchant account
         "username": "AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX",
         "password": "EIbrrlOv2mI9okw9-YQJRNarqDUOrCOreBgEYeHkjeEh3lDMhytGCLqrIlVXrENb8GC394022048af3B"
     }
@@ -1138,8 +1138,8 @@ def get_pp_order_details(clientToken, orderID):
     try:
         url = 'https://api-m.sandbox.paypal.com/v2/checkout/orders/' + orderID
         payload ={}
-
-
+        
+        print("Getting order details for orderID: ", orderID, " url: ", url)
         headers = {
             "Authorization": f"Bearer {clientToken}",
             "Content-Type": "application/json",
