@@ -20,6 +20,8 @@ const UI = {
   }
 };
 
+let orderIdGlobal;
+
 function readConfig() {
   // Read and validate JSON payload
   let payload;
@@ -193,6 +195,14 @@ function setReturnFlowHandling() {
     }
 
     console.log('No relevant hash parameters found. Proceeding with visibility change handling.');
+
+    const orderId = orderIdGlobal;
+    if (!orderId || orderId.length === 0) {
+      console.error('No order ID found in global variable. Cannot fetch order details.');
+      return;
+    }
+    console.log('Fetching order details for order ID:', orderId);
+
     const orderResponse = getOrderDetails(orderId);
     console.log('Order response:', orderResponse);
 
@@ -440,6 +450,8 @@ function initConfig() {
       })
       .then((orderData) => {
         console.log("Order created:", orderData.order_response);
+        //set global var for orderId to be used in visibility change handler
+        orderIdGlobal = orderData.order_response.id;
         return orderData.order_response;
       })
       .then((order_response) => {
