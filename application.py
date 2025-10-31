@@ -1138,7 +1138,7 @@ def get_pp_order_details(clientToken, orderID):
     try:
         url = 'https://api-m.sandbox.paypal.com/v2/checkout/orders/' + orderID
         payload ={}
-        
+
         print("Getting order details for orderID: ", orderID, " url: ", url)
         headers = {
             "Authorization": f"Bearer {clientToken}",
@@ -1534,6 +1534,7 @@ def post_pp_client_token(username=None, password=None):
         url = 'https://api-m.sandbox.paypal.com' + '/v1/oauth2/token'
         username=username  #client id
         password=password  #client secret
+        print("Getting client token with username: ", username)
         payload ={
             "grant_type": "client_credentials"
         }
