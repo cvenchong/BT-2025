@@ -170,20 +170,20 @@ function buildCreateOrderRequestPayload(orderID, customID) {
   return payload;
 }
 
-function processOrder(orderId, visibilityChangeOrHashChange) {
+async function processOrder(orderId, visibilityChangeOrHashChange) {
   if (!orderId || orderId.length === 0) {
     console.error('No order ID found. Cannot fetch order details.');
     return;
   }
-  const orderResponse = getOrderDetails(orderId);
+  const orderResponse = await getOrderDetails(orderId);
   const orderStatus = orderResponse.status;
   const cancelledActivity = orderResponse?.payment_source?.paypal?.experience_status;
 
   //Order Approved
   if (orderStatus === 'APPROVED') {
     // Capture payment & redirect to confirmation page
-    captureOrder(orderId);
-    console.log('Order APPROVED. Capturing payment and redirecting to confirmation page.');
+    await captureOrder(orderId);
+    console.log('Order Captured. Buyer should be redirected to confirmation page.');
   }
 
   //Buyer cancels transaction
@@ -194,7 +194,12 @@ function processOrder(orderId, visibilityChangeOrHashChange) {
   }
   else {
     // Display a modal to complete payment on the PayPal App
-    console.log('No action taken. Order status:', orderStatus, 'Cancelled activity:', cancelledActivity);
+    if (orderStatus === 'COMPLETED') {
+      console.log('Order is already completed. No further action needed.');
+    }else
+    {
+      console.log('No action taken. Order status:', orderStatus, 'Cancelled activity:', cancelledActivity);
+    }
   }
 }
 
