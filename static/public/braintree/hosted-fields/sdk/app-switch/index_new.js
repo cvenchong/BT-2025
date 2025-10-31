@@ -138,6 +138,8 @@ async function initBT() {
           commit: true // Required for Pay Now flow with App Switch
         }
         console.log("Loading PayPal SDK with options: ", loadPayPalSDKOptions);
+        console.log("appSwitchWhenAvailable: ", document.getElementById('enable-app-switch-when-available').checked);
+        console.log("billing agreement: ", document.getElementById('enable-billing-agreement').checked);
 
         paypalCheckoutInstance.loadPayPalSDK(loadPayPalSDKOptions, function () {
           console.log("PayPal SDK loaded", paypalCheckoutInstance);
@@ -279,8 +281,8 @@ async function initBT() {
 
 
 
-function main() {
-    initBT();
-}
+// function main() {
+//     initBT();
+// }
 
-main();
+// main();
