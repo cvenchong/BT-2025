@@ -170,41 +170,32 @@ function buildCreateOrderRequestPayload(orderID, customID) {
   return payload;
 }
 
-function processOrder(orderId) {
-  console.log('Processing order approval for order ID:', orderId);
-  // Implement order approval processing logic here
+function processOrder(orderId, visibilityChangeOrHashChange) {
+  if (!orderId || orderId.length === 0) {
+    console.error('No order ID found. Cannot fetch order details.');
+    return;
+  }
+  const orderResponse = getOrderDetails(orderId);
+  const orderStatus = orderResponse.status;
+  const cancelledActivity = orderResponse?.payment_source?.paypal?.experience_status;
 
-  const orderId = orderIdGlobal;
-    if (!orderId || orderId.length === 0) {
-      console.error('No order ID found in global variable. Cannot fetch order details.');
-      return;
-    }
-    console.log('Fetching order details for order ID:', orderId);
+  //Order Approved
+  if (orderStatus === 'APPROVED') {
+    // Capture payment & redirect to confirmation page
+    captureOrder(orderId);
+    console.log('Order APPROVED. Capturing payment and redirecting to confirmation page.');
+  }
 
-    const orderResponse = getOrderDetails(orderId);
-    console.log('Order response:', orderResponse);
-
-    const orderStatus = orderResponse.status;
-    const cancelledActivity = orderResponse?.payment_source?.paypal?.experience_status;
-
-    //Order Approved
-    if (orderStatus === 'approved') {
-      // Capture payment & redirect to confirmation page
-      captureOrder(orderId);
-      console.log('Order approved. Capturing payment and redirecting to confirmation page.');      
-    }
-
-    //Buyer cancels transaction
-    else if (orderStatus !== 'approved' && cancelledActivity == 'cancelled') {
-      // Buyer app switched to paypal but closed checkout before approving the transaction. 
-      // Display Cart page again or take the appropriate "cancel" action 
-      console.log('Buyer app switched to paypal but closed checkout before approving the transaction. Displaying cart page again.');
-    }
-
-    else {
-      // Display a modal to complete payment on the PayPal App
-      console.log('No action taken. Order status:', orderStatus, 'Cancelled activity:', cancelledActivity);
-    }
+  //Buyer cancels transaction
+  else if (orderStatus !== 'APPROVED' && cancelledActivity == 'CANCELED') {
+    // Buyer app switched to paypal but closed checkout before approving the transaction. 
+    // Display Cart page again or take the appropriate "cancel" action 
+    console.log('Buyer app switched to paypal but closed checkout before approving the transaction. Displaying cart page again.');
+  }
+  else {
+    // Display a modal to complete payment on the PayPal App
+    console.log('No action taken. Order status:', orderStatus, 'Cancelled activity:', cancelledActivity);
+  }
 }
 
 function setReturnFlowHandling() {
@@ -234,36 +225,7 @@ function setReturnFlowHandling() {
     console.log('No relevant hash parameters found. Proceeding with visibility change handling.');
 
     const orderId = orderIdGlobal;
-    if (!orderId || orderId.length === 0) {
-      console.error('No order ID found in global variable. Cannot fetch order details.');
-      return;
-    }
-    console.log('Fetching order details for order ID:', orderId);
-
-    const orderResponse = getOrderDetails(orderId);
-    console.log('Order response:', orderResponse);
-
-    const orderStatus = orderResponse.status;
-    const cancelledActivity = orderResponse?.payment_source?.paypal?.experience_status;
-
-    //Order Approved
-    if (orderStatus === 'approved') {
-      // Capture payment & redirect to confirmation page
-      captureOrder(orderId);
-      console.log('Order approved. Capturing payment and redirecting to confirmation page.');      
-    }
-
-    //Buyer cancels transaction
-    else if (orderStatus !== 'approved' && cancelledActivity == 'cancelled') {
-      // Buyer app switched to paypal but closed checkout before approving the transaction. 
-      // Display Cart page again or take the appropriate "cancel" action 
-      console.log('Buyer app switched to paypal but closed checkout before approving the transaction. Displaying cart page again.');
-    }
-
-    else {
-      // Display a modal to complete payment on the PayPal App
-      console.log('No action taken. Order status:', orderStatus, 'Cancelled activity:', cancelledActivity);
-    }
+    processOrder(orderId);
   });
 
   if (returnFlow === "AUTO") {
@@ -280,6 +242,7 @@ function setReturnFlowHandling() {
         // Buyer cancelled PayPal app switch
         console.log('Buyer cancelled PayPal app switch');
       }
+      processOrder(params.token);
     });
   }
   else {
@@ -298,7 +261,7 @@ async function captureOrder(orderId) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ orderID: orderId})
+    body: JSON.stringify({ orderID: orderId })
   })
 
   const captureData = await response.json();
@@ -319,7 +282,7 @@ async function getOrderDetails(orderId) {
   const orderData = await response.json();
   console.log("Order details fetched:", orderData);
   return orderData;
-} 
+}
 
 function getUserAgentAndDeviceType() {
   const ua = navigator.userAgent;
@@ -555,6 +518,7 @@ console.info = function (...args) {
 };
 
 function parseHashParams(hash) {
+  console.log('Parsing hash parameters from:', hash);
   // Remove leading '#' if present
   hash = hash.startsWith('#') ? hash.substring(1) : hash;
   const params = {};
@@ -565,19 +529,19 @@ function parseHashParams(hash) {
       //if key == onApprove, set the key name to approved
 
       params[key] = value || true;
-      console.log(`Parsed hash param: ${key} = ${value || true}`);
+      //console.log(`Parsed hash param: ${key} = ${value || true}`);
     }
   });
   //check if onApprove or onCancel exist and map to approved/cancelled
   if (params.onApprove) {
     params.approved = params.onApprove;
     delete params.onApprove;
-    console.log('Mapped onApprove to approved');
+    //console.log('Mapped onApprove to approved');
   }
   if (params.onCancel) {
     params.cancelled = params.onCancel;
     delete params.onCancel;
-    console.log('Mapped onCancel to cancelled');
+    //console.log('Mapped onCancel to cancelled');
   }
   return params;
 }
