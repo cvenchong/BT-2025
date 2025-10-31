@@ -143,8 +143,8 @@ async function initBT() {
           console.log("PayPal SDK loaded", paypalCheckoutInstance);
           const button = paypal.Buttons({
             fundingSource: paypal.FUNDING.PAYPAL,
-            //appSwitchWhenAvailable: getElementById('enable-app-switch-when-available').checked, // Indicator to trigger app switch
-            appSwitchWhenAvailable: false, // Indicator to trigger app switch
+            appSwitchWhenAvailable: document.getElementById('enable-app-switch-when-available').checked, // Indicator to trigger app switch
+            //appSwitchWhenAvailable: false, // Indicator to trigger app switch
             createOrder: function () {
               // Base payment request options for one-time payments
               var createPaymentRequestOptions = {
@@ -156,8 +156,8 @@ async function initBT() {
                 // App Switch specific options
                 returnUrl: return_cancel_url,
                 cancelUrl: return_cancel_url,
-                //requestBillingAgreement: getElementById('enable-billing-agreement').checked //implement a config to toggle this value
-                requestBillingAgreement: true //build a checkout to toggle this value
+                requestBillingAgreement: document.getElementById('enable-billing-agreement').checked //implement a config to toggle this value
+                //requestBillingAgreement: true //build a checkout to toggle this value
               };
 
               console.log("createPaymentRequestOptions: ", createPaymentRequestOptions);
@@ -208,7 +208,7 @@ async function initBT() {
                     body: JSON.stringify({
                       paymentMethodNonce: payload.nonce,
                       isDeviceDataRequired: null,
-                      storeInVaultOnSuccess: false,
+                      storeInVaultOnSuccess: document.getElementById('enable-billing-agreement').checked,
                       orderId: on_approved_order_id
                     })
                   }).then(function(response){ 
