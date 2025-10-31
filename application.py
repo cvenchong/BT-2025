@@ -617,7 +617,8 @@ def api_paypal_checkout_appswitch():
     if store_in_vault:
         sale_req.setdefault("options", {})["store_in_vault_on_success"] = True
     result = gateway.transaction.sale(sale_req)
-    printBTResponse(result)
+    isTransactionSale = True
+    printBTResponse(result, isTransactionSale)
     if result.is_success:
         updateActiveOrderStatus(order_id, result.transaction.status)
 
@@ -756,18 +757,36 @@ def createPaymentMethod(customerId, pmt_nonce, merchantAccountId=None):
 
 
 def safe_to_dict(obj):
+    # Handle objects with to_dict method
     if hasattr(obj, "to_dict"):
         return {k: safe_to_dict(v) for k, v in obj.to_dict().items()}
+    # Handle dicts
     elif isinstance(obj, dict):
         return {k: safe_to_dict(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
+    # Handle lists/tuples
+    elif isinstance(obj, (list, tuple)):
         return [safe_to_dict(v) for v in obj]
+    # Handle objects with __dict__ (most Python objects)
+    # elif hasattr(obj, "__dict__"):
+    #     # Avoid printing private/protected attributes and methods
+    #     return {k: safe_to_dict(v) for k, v in obj.__dict__.items() if not k.startswith("_")}
+    # Primitive types
     else:
-        return obj  # primitive types (str, int, datetime, etc.)
+        return obj
 
-def printBTResponse(result):
-    parsedData=safe_to_dict(result)
-    print(json.dumps(parsedData, indent=2, default=str))
+def printBTResponse(result, isTransactionSale=False):
+    if isTransactionSale:
+        print("Transaction Sale Response:")
+        parsedData=safe_to_dict(result.transaction)
+        print(json.dumps(parsedData, indent=2, default=str))
+        if result.transaction.payment_instrument_type == braintree.PaymentInstrumentType.PayPalAccount:
+            print(json.dumps(result.transaction.paypal, indent=2, default=str))
+        elif result.transaction.payment_instrument_type == braintree.PaymentInstrumentType.CreditCard:
+            print(json.dumps(result.transaction.credit_card, indent=2, default=str))
+    else:
+        print("Braintree Response:")
+        parsedData=safe_to_dict(result)
+        print(json.dumps(parsedData, indent=2, default=str))
 
 @app.route("/createPayment", methods=["POST"])
 def createPayment():
