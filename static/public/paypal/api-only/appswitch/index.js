@@ -170,6 +170,43 @@ function buildCreateOrderRequestPayload(orderID, customID) {
   return payload;
 }
 
+function processOrder(orderId) {
+  console.log('Processing order approval for order ID:', orderId);
+  // Implement order approval processing logic here
+
+  const orderId = orderIdGlobal;
+    if (!orderId || orderId.length === 0) {
+      console.error('No order ID found in global variable. Cannot fetch order details.');
+      return;
+    }
+    console.log('Fetching order details for order ID:', orderId);
+
+    const orderResponse = getOrderDetails(orderId);
+    console.log('Order response:', orderResponse);
+
+    const orderStatus = orderResponse.status;
+    const cancelledActivity = orderResponse?.payment_source?.paypal?.experience_status;
+
+    //Order Approved
+    if (orderStatus === 'approved') {
+      // Capture payment & redirect to confirmation page
+      captureOrder(orderId);
+      console.log('Order approved. Capturing payment and redirecting to confirmation page.');      
+    }
+
+    //Buyer cancels transaction
+    else if (orderStatus !== 'approved' && cancelledActivity == 'cancelled') {
+      // Buyer app switched to paypal but closed checkout before approving the transaction. 
+      // Display Cart page again or take the appropriate "cancel" action 
+      console.log('Buyer app switched to paypal but closed checkout before approving the transaction. Displaying cart page again.');
+    }
+
+    else {
+      // Display a modal to complete payment on the PayPal App
+      console.log('No action taken. Order status:', orderStatus, 'Cancelled activity:', cancelledActivity);
+    }
+}
+
 function setReturnFlowHandling() {
   var returnFlow = document.querySelector('input[name="returnFlow"]:checked').value;
   console.log("Selected return flow:", returnFlow);
@@ -220,7 +257,7 @@ function setReturnFlowHandling() {
     else if (orderStatus !== 'approved' && cancelledActivity == 'cancelled') {
       // Buyer app switched to paypal but closed checkout before approving the transaction. 
       // Display Cart page again or take the appropriate "cancel" action 
-      console.log('Buyer cancelled PayPal app switch. Displaying cart page again.');
+      console.log('Buyer app switched to paypal but closed checkout before approving the transaction. Displaying cart page again.');
     }
 
     else {
@@ -252,51 +289,37 @@ function setReturnFlowHandling() {
 
 }
 
-function captureOrder(orderId) {
+//this should also be sync function and return the capture data
+async function captureOrder(orderId) {
   console.log('Capturing payment for order ID:', orderId);
   // Implement payment capture logic here
-  const response = fetch('/pp/capture_order', {
+  const response = await fetch('/pp/capture_order', {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ orderID: orderId})
   })
-    .then(async (response) => {
-      return response.json();
-    })
-    .then((captureData) => {
-      console.log("Order captured:", captureData);
-      return captureData;
-    })
-    .catch((error) => {
-      console.error("Error capturing order:", error);
-    });
-  return response;
+
+  const captureData = await response.json();
+  console.log("Capture order response:", captureData);
+  return captureData;
 }
 
-function getOrderDetails(orderId) {
+async function getOrderDetails(orderId) {
   console.log('Fetching order response for order ID:', orderId);
   // Implement logic to fetch order response from server or PayPal API
-  
-  const response = fetch('/pp/order_details?orderID=' + orderId, {
+
+  const response = await fetch('/pp/order_details?orderID=' + orderId, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
     }
-  })
-    .then(async (response) => {
-      return response.json();
-    })
-    .then((orderData) => {
-      console.log("Order details fetched:", orderData);
-      return orderData;
-    })
-    .catch((error) => {
-      console.error("Error fetching order details:", error);
-    });
-  return response;
-}
+  });
+  const orderData = await response.json();
+  console.log("Order details fetched:", orderData);
+  return orderData;
+} 
 
 function getUserAgentAndDeviceType() {
   const ua = navigator.userAgent;
