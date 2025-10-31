@@ -155,7 +155,7 @@ async function initBT() {
                 // App Switch specific options
                 returnUrl: return_cancel_url,
                 cancelUrl: return_cancel_url,
-                requestBillingAgreement: true
+                requestBillingAgreement: getElementById('enable-billing-agreement').checked //implement a config to toggle this value
               };
 
               console.log("createPaymentRequestOptions: ", createPaymentRequestOptions);
@@ -277,8 +277,8 @@ async function initBT() {
 
 
 
-function main() {
-    initBT();
-}
+// function main() {
+//     initBT();
+// }
 
-main();
+// main();
