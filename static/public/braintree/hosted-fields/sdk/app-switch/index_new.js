@@ -143,7 +143,8 @@ async function initBT() {
           console.log("PayPal SDK loaded", paypalCheckoutInstance);
           const button = paypal.Buttons({
             fundingSource: paypal.FUNDING.PAYPAL,
-            appSwitchWhenAvailable: getElementById('enable-app-switch-when-available').checked, // Indicator to trigger app switch
+            //appSwitchWhenAvailable: getElementById('enable-app-switch-when-available').checked, // Indicator to trigger app switch
+            appSwitchWhenAvailable: false, // Indicator to trigger app switch
             createOrder: function () {
               // Base payment request options for one-time payments
               var createPaymentRequestOptions = {
@@ -155,7 +156,8 @@ async function initBT() {
                 // App Switch specific options
                 returnUrl: return_cancel_url,
                 cancelUrl: return_cancel_url,
-                requestBillingAgreement: getElementById('enable-billing-agreement').checked //implement a config to toggle this value
+                //requestBillingAgreement: getElementById('enable-billing-agreement').checked //implement a config to toggle this value
+                requestBillingAgreement: true //build a checkout to toggle this value
               };
 
               console.log("createPaymentRequestOptions: ", createPaymentRequestOptions);
@@ -277,8 +279,8 @@ async function initBT() {
 
 
 
-// function main() {
-//     initBT();
-// }
+function main() {
+    initBT();
+}
 
-// main();
+main();
