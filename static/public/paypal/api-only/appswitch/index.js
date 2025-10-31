@@ -227,16 +227,17 @@ function setReturnFlowHandling() {
       return;
     }
 
-    console.log('No relevant hash parameters found. Proceeding with visibility change handling.');
+    console.log('No relevant hash parameters found. Payer abandoned checkout/just need to check item/order etc.');
 
-    const orderId = orderIdGlobal;
-    processOrder(orderId);
+    //const orderId = orderIdGlobal;
+    //processOrder(orderId);
   });
 
   if (returnFlow === "AUTO") {
     //init visbility change handling - Use the visibilitychange event listener to handle scenarios where the payer abandons the checkout
     window.addEventListener('hashchange', (e) => { //document stated to be a document level event for hashchange which is incorrect. 
       console.log('Hash changed event detected:', e);
+      console.log('Buyer is returning from app switch...');
       const params = parseHashParams(window.location.hash);
       if (params.approved) {
         console.log('Buyer is returning from app switch with an approved order');

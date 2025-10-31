@@ -66,7 +66,7 @@
 
               createPaymentRequestOptions = {
                 flow: 'checkout',
-                requestBillingAgreement: true, //build a checkout to toggle this value
+                requestBillingAgreement: false, //build a checkout to toggle this value
                 
                 currency: config.currency,
                 amount: config.amount,

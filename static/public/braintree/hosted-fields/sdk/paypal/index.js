@@ -157,6 +157,12 @@ function main() {
                     .Buttons({
                       createOrder() {
                         console.log("Received order creation request");
+                        let billingAgreementEnable = true;
+                        let billingAgreementDescription = {
+                          description: "Test Billing Agreement",
+                        };
+                        console.log("Billing Agreement Enabled: ", billingAgreementEnable);
+                        console.log("Billing Agreement Description: ", billingAgreementDescription);
 
                         console.log("Attempting to create order");
                         return paypalCheckout
@@ -165,6 +171,10 @@ function main() {
                             intent: "capture",
                             amount: "10.00",
                             currency: "GBP",
+                            // requestBillingAgreement: true,
+                            // billingAgreementDetails: {
+                            //   description: "Test Billing Agreement",
+                            // },
                           })
                           .then((orderId) => {
                             if ((orderId ?? null) === null) {

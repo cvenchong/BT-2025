@@ -154,7 +154,8 @@ async function initBT() {
                 intent: intent, // Must match the intent passed in with loadPayPalSDK
                 // App Switch specific options
                 returnUrl: return_cancel_url,
-                cancelUrl: return_cancel_url
+                cancelUrl: return_cancel_url,
+                requestBillingAgreement: true
               };
 
               console.log("createPaymentRequestOptions: ", createPaymentRequestOptions);
