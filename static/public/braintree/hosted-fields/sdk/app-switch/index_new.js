@@ -143,7 +143,7 @@ async function initBT() {
           console.log("PayPal SDK loaded", paypalCheckoutInstance);
           const button = paypal.Buttons({
             fundingSource: paypal.FUNDING.PAYPAL,
-            appSwitchWhenAvailable: true, // Indicator to trigger app switch
+            appSwitchWhenAvailable: getElementById('enable-app-switch-when-available').checked, // Indicator to trigger app switch
             createOrder: function () {
               // Base payment request options for one-time payments
               var createPaymentRequestOptions = {
