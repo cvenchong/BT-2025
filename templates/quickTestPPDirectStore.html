@@ -93,10 +93,39 @@
       if (tag) tag.text = JSON.stringify(params);
     }
 
+    // Helper function to wait for FraudNet script to load
+    function waitForFraudNetScript() {
+      return new Promise((resolve) => {
+        // Check if script already exists
+        const existingScript = document.querySelector('script[src="https://c.paypal.com/da/r/fb.js"]');
+        if (existingScript) {
+          if (existingScript.complete) {
+            resolve();
+          } else {
+            existingScript.addEventListener('load', resolve);
+          }
+        } else {
+          // If script doesn't exist yet, wait for it to be added and loaded
+          const observer = new MutationObserver((mutations, obs) => {
+            const script = document.querySelector('script[src="https://c.paypal.com/da/r/fb.js"]');
+            if (script) {
+              script.addEventListener('load', () => {
+                obs.disconnect();
+                resolve();
+              });
+            }
+          });
+          observer.observe(document.documentElement, { childList: true, subtree: true });
+        }
+      });
+    }
+
     async function callBackend(url, requestData, { timeoutMs = 30000 } = {}) {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
       try {
+        //timestamped logs
+        console.log(new Date().toISOString(), " - Calling backend... started");
         console.log("Calling Backend url:", url);
         console.log("requestData:", requestData);
 
@@ -111,6 +140,8 @@
           const text = await resp.text().catch(() => "");
           throw new Error(`Failed to call backend: \${resp.status} \${resp.statusText} \${text}`);
         }
+        
+        console.log(new Date().toISOString(), " - Calling backend... finished");
         return resp.json();
       } finally {
         clearTimeout(timer);
@@ -120,12 +151,16 @@
     /************** Main (top-level await) **************/
     const isPatch = '{{isPatch}}';
     console.log("isPatch:", isPatch);
+
+
     // 1) Generate FraudNet identifiers
-    const FN_SESSION_ID = generateFnSessionId();
+    let FN_SESSION_ID = generateFnSessionId();
     const SOURCE_ID = CONFIG.SOURCE_ID;
 
     // 2) Expose to window (handy for debugging & your server-side logging)
-    window.__FRAUDNET__ = { f: FN_SESSION_ID, s: SOURCE_ID, sandbox: false };
+//    FN_SESSION_ID = 'quicskjafasdg'; // for testing only
+
+    window.__FRAUDNET__ = { f: FN_SESSION_ID, s: SOURCE_ID, sandbox: true };
 
     // 3) Show f on page
     document.getElementById("fn-session-id").textContent = FN_SESSION_ID;
@@ -133,20 +168,35 @@
     // 4) Write params for FraudNet before fb.js loads
     updateFnParamsJSON(window.__FRAUDNET__);
 
-    // 5) Call your backend to create an order (using top-level await)
-    const requestData = { f: FN_SESSION_ID, s: SOURCE_ID, sandbox: true, vaultOnSuccess: true, isPatch: isPatch };
-
-    // 6) add no js support
+    // 5) Add no js support
     var noscript = document.createElement("noscript");
     var img = document.createElement("img");
     img.src = `https://c.paypal.com/v1/r/d/b/ns?f=${FN_SESSION_ID}&s=${SOURCE_ID}&js=0&r=1`;
     noscript.appendChild(img);
     document.body.appendChild(noscript);
 
+    // 6) Load FraudNet script dynamically
+    const fraudnetScript = document.createElement('script');
+    fraudnetScript.src = 'https://c.paypal.com/da/r/fb.js';
+    fraudnetScript.async = true;
+    document.body.appendChild(fraudnetScript);
+
+    // 7) Wait for FraudNet script to load before calling backend
+    console.log("Waiting for FraudNet script to load...");
+    await waitForFraudNetScript();
+    console.log("FraudNet script loaded!");
+
+    // 8) Call your backend to create an order (using top-level await)
+    const requestData = { f: FN_SESSION_ID, s: SOURCE_ID, sandbox: true, vaultOnSuccess: true, isPatch: isPatch };
+
 
     let createOrderResponse = null;
 
     try {
+      //add a blocking delay to simulate real-world network conditions with timestamped logs
+      console.log("Simulating network delay... 3s - start - "+ new Date().toISOString());
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      console.log("Simulating network delay... 3s - end - "+ new Date().toISOString());
       createOrderResponse = await callBackend(CONFIG.apis.POST_CREATE_ORDER_V2, requestData);
       console.log("create order v2 response:", createOrderResponse);
       document.getElementById("result").textContent =
@@ -176,8 +226,5 @@
       }
     );
   </script>
-
-  <!-- Load FraudNet AFTER the fnparams block (and after we updated it above) -->
-  <script src="https://c.paypal.com/da/r/fb.js" async></script>
 </body>
 </html>

@@ -2214,7 +2214,8 @@ def createPPOrderV2():
     FN_SESSION_ID = data.get("f")
     vaultOnSuccess = data.get("vaultOnSuccess", False)    
     isPatch = data.get("isPatch", False)
-    order_response = post_pp_create_order(clientToken, FN_SESSION_ID, vaultOnSuccess, None, isPatch)
+    vaultToken = data.get("vaultedToken", None)    
+    order_response = post_pp_create_order(clientToken, FN_SESSION_ID, vaultOnSuccess, vaultToken, isPatch)
     put_stc(clientToken, FN_SESSION_ID)
     return jsonify({
             "success": True,
