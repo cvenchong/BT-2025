@@ -97,6 +97,8 @@
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
       try {
+        //timestamped logs
+        console.log(new Date().toISOString(), " - Calling backend... started");
         console.log("Calling Backend url:", url);
         console.log("requestData:", requestData);
 
@@ -111,6 +113,8 @@
           const text = await resp.text().catch(() => "");
           throw new Error(`Failed to call backend: \${resp.status} \${resp.statusText} \${text}`);
         }
+        
+        console.log(new Date().toISOString(), " - Calling backend... finished");
         return resp.json();
       } finally {
         clearTimeout(timer);
@@ -151,6 +155,7 @@
     let createOrderResponse = null;
 
     try {
+      //
       createOrderResponse = await callBackend(CONFIG.apis.POST_CREATE_ORDER_V2, requestData);
       console.log("create order v2 response:", createOrderResponse);
       document.getElementById("result").textContent =
