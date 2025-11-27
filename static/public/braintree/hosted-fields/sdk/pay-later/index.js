@@ -1,6 +1,11 @@
 const merchantAccountId = "stevenchongGBP";
 const currencyCode = "GBP";
 const buyerCountry = "GB";
+
+// const merchantAccountId = "stevenchongGBP";
+// const currencyCode = "GBP";
+// const buyerCountry = "GB";
+
 const state = { btclient:null, paypalCheckout:null }; 
 
 //const merchantAccountId = "stevenustest_GBP";

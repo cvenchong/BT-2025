@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Pay Later Messagin through API</title>
+    <script
+      type="module"
+      src="https://www.paypal.com/sdk/js?client-id=AUivjUL_LNyZFzHIU9lbQ9-egUXMZUkqREhl9bDpr25-BOnu_G2qKRwLpzYNI7Oukqo-Az_danXFAXT6&components=buttons&currency=GBP&enable-funding=card,paylater&commit=true&buyer-country=GB"
+    ></script>
+  </head>
+  <body>
+    <h1>Pay Later Messaging through API</h1>
+    <a href="../../../../../index.html">Main Page</a>
+
+    <hr />
+
+    <div id="options-container"></div>
+    <p id="total">Total: £0.00</p>
+
+    <div id="message-container">
+      <img src="./logo.png" alt="PayPal logo" />
+      <p id="message"></p>
+      <a id="disclaimer-link">
+        <p id="disclaimer-message"></p>
+      </a>
+      <img id="impression" aria-hidden="true" />
+    </div>
+
+    <div id="container"></div>
+
+    <hr />
+
+    <p id="feedback"></p>
+    <p id="error"></p>
+
+    <script type="module" src="./index.js"></script>
+  </body>
+</html>

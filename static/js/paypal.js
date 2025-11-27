@@ -22,7 +22,8 @@
       shippingPref: $id('shippingPref').value,
       isDeviceDataRequired: $id('device-data-required').checked,
       returnUrl: $id('returnUrl').value.trim() || null,
-      cancelUrl: $id('cancelUrl').value.trim() || null
+      cancelUrl: $id('cancelUrl').value.trim() || null,
+      storeInVaultOnSuccess: $id('flow').value === 'vault' || $id('flow').value === 'checkout-vault'
     }
 	}
 
@@ -54,19 +55,31 @@
           //'client-id': 'PayPal Client Id', // Can speed up rendering time to hardcode this value
           intent: config.intent, // Make sure this value matches the value in createPayment
           currency: config.currency, // Make sure this value matches the value in createPayment
+          "buyer-country": "GB"
         }).then(function (paypalCheckoutInstance) {
           // window.paypal.Buttons is now available to use
           // Set up PayPal
           return paypal.Buttons({
-            fundingSource: paypal.FUNDING.PAYPAL,
+//            fundingSource: paypal.FUNDING.PAYPAL,
+            fundingSource: paypal.FUNDING.PAYLATER,
+
+
 
             createOrder: function () {
               //createOrder is called
               Playground.log( 'createOrder called');
+              var config = readConfig();
+              var requireBillingAgreement = false;
+              Playground.log( 'Config flow: ' + config.flow);
+              
+              if (config.flow === 'checkout-vault') {
+                Playground.log( 'Checkout + Vault flow selected, setting requireBillingAgreement to true');
+                requireBillingAgreement = true;
+              }
 
               createPaymentRequestOptions = {
                 flow: 'checkout',
-                requestBillingAgreement: false, //build a checkout to toggle this value
+                requestBillingAgreement: requireBillingAgreement,
                 
                 currency: config.currency,
                 amount: config.amount,
@@ -79,6 +92,10 @@
 
             onApprove: function (data, actions) {
               Playground.log( 'onApprove called, data: ' + JSON.stringify(data, null, 2));
+              var config = readConfig();
+              Playground.log( 'Config flow: ' + config.flow);
+              Playground.log('config storeInVaultOnSuccess: ' + config.storeInVaultOnSuccess);
+              
               // some logic here before tokenization happens below
               return paypalCheckoutInstance.tokenizePayment(data).then(function (payload) {
                 Playground.log( 'tokenizePayment returned payload: ' + JSON.stringify(payload, null, 2));
@@ -96,7 +113,8 @@
                     customerId: config.customerId,
                     isDeviceDataRequired: config.isDeviceDataRequired,
                     returnUrl: config.returnUrl,
-                    cancelUrl: config.cancelUrl
+                    cancelUrl: config.cancelUrl,
+                    storeInVaultOnSuccess: config.storeInVaultOnSuccess || false
           
                   })
                 }).then(function(response){ 

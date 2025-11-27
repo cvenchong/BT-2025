@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Fastlane</title>
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+  <body>
+    <h1>Fastlane</h1>
+    <a href="../../../../../index.html">Main Page</a>
+
+    <hr />
+
+    <div class="input-item">
+      <label for="email">Email</label>
+      <input class="input" id="email" />
+    </div>
+    <div id="watermark-container"></div>
+    <button id="email-continue-button" type="button">Continue</button>
+    <button id="email-edit-button" type="button" disabled>Edit</button>
+
+    <div id="shipping-section" hidden>
+      <h3>Name</h3>
+      <div class="input-item">
+        <label for="first-name">First Name</label>
+        <input class="input" id="first-name" />
+      </div>
+      <div class="input-item">
+        <label for="last-name">Last Name</label>
+        <input class="input" id="last-name" />
+      </div>
+
+      <h3>Shipping</h3>
+      <div class="input-item">
+        <label for="address-line-1">First Line of Address</label>
+        <input class="input" id="address-line-1" />
+      </div>
+      <div class="input-item">
+        <label for="address-line-2">Second Line of Address (optional)</label>
+        <input class="input" id="address-line-2" />
+      </div>
+      <div class="input-item">
+        <label for="city">City</label>
+        <input class="input" id="city" />
+      </div>
+      <div class="input-item">
+        <label for="county">County (optional)</label>
+        <input class="input" id="county" />
+      </div>
+      <div class="input-item">
+        <label for="post-code">Post Code</label>
+        <input class="input" id="post-code" />
+      </div>
+      <div class="input-item">
+        <label for="country">Country Code (e.g. GB, US, DE)</label>
+        <input class="input" id="country" />
+      </div>
+
+      <h3>Phone Number (optional)</h3>
+      <div class="input-item">
+        <label for="country-code">Country Code</label>
+        <input class="input" id="country-code" />
+      </div>
+      <div class="input-item">
+        <label for="national-number">National Number</label>
+        <input class="input" id="national-number" />
+      </div>
+
+      <button id="shipping-continue-button" type="button" disabled>
+        Continue
+      </button>
+      <button id="shipping-edit-button" type="button" disabled>Edit</button>
+    </div>
+
+    <div id="payment-section" hidden>
+      <div id="payment-container"></div>
+      <button id="submit-button" type="button" disabled>Pay</button>
+    </div>
+
+    <hr />
+
+    <p id="feedback"></p>
+    <p id="error"></p>
+
+    <!-- will inject JS SDK script and fastlane configuration script -->
+    <script type="module" src="./pre-script.js"></script>
+  </body>
+</html>

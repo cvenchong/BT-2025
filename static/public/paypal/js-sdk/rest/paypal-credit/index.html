@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PayPal Credit</title>
+    <script
+      type="module"
+      src="https://www.paypal.com/sdk/js?client-id=AUivjUL_LNyZFzHIU9lbQ9-egUXMZUkqREhl9bDpr25-BOnu_G2qKRwLpzYNI7Oukqo-Az_danXFAXT6&components=buttons&currency=GBP&enable-funding=card,credit&commit=true&buyer-country=US"
+    ></script>
+    <script
+      type="module"
+      src="https://www.paypalobjects.com/upstream/bizcomponents/js/messaging.js"
+      data-pp-account="RZYA9VLACY8SJ"
+    ></script>
+  </head>
+  <body>
+    <h1>PayPal Credit</h1>
+    <a href="../../../../../index.html">Main Page</a>
+
+    <hr />
+
+    <div id="options-container"></div>
+    <p id="total">Total: £0.00</p>
+
+    <div id="message-container" data-pp-message></div>
+
+    <div id="container"></div>
+
+    <hr />
+
+    <p id="feedback"></p>
+    <p id="error"></p>
+
+    <script type="module" src="./index.js"></script>
+  </body>
+</html>

@@ -1,0 +1,588 @@
+/* Farfetch Checkout Page Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background-color: #ffffff;
+    color: #333;
+    line-height: 1.6;
+}
+
+.checkout-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header */
+.checkout-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.secure-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #666;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.help-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.help-section span {
+    color: #666;
+}
+
+.help-section a {
+    color: #333;
+    text-decoration: none;
+}
+
+.help-section a:hover {
+    text-decoration: underline;
+}
+
+/* Main Content Layout */
+.checkout-content {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 60px;
+    padding: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.checkout-left {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* Section Styles */
+.checkout-section {
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 30px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.checkmark {
+    width: 24px;
+    height: 24px;
+    background-color: #2ecc71;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.section-title h2 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.edit-btn {
+    background: none;
+    border: none;
+    color: #333;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.edit-btn:hover {
+    color: #000;
+}
+
+.section-content {
+    padding-left: 36px;
+}
+
+.section-subtitle {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+/* Address Section */
+.address-display {
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.address-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.address-line {
+    color: #666;
+}
+
+.address-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.address-option {
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.address-option:hover {
+    border-color: #333;
+}
+
+.address-option label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.address-option input[type="radio"] {
+    margin-top: 4px;
+    cursor: pointer;
+}
+
+.address-details {
+    flex: 1;
+}
+
+.confirm-btn {
+    background-color: #333;
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    margin-top: 15px;
+    transition: background-color 0.2s;
+}
+
+.confirm-btn:hover {
+    background-color: #000;
+}
+
+/* Delivery Method */
+.delivery-badge {
+    display: inline-block;
+    background-color: #333;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.info-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.delivery-estimate {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.delivery-estimate img {
+    width: 40px;
+    height: 40px;
+}
+
+/* Payment Methods */
+.payment-methods {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.payment-method-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 15px;
+    color: #333;
+}
+
+.payment-method-btn:hover {
+    border-color: #333;
+}
+
+.payment-method-btn.active {
+    border-color: #333;
+    border-width: 2px;
+    background-color: #f9f9f9;
+}
+
+.payment-method-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.payment-method-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Pay Later Messaging */
+.paylater-messaging {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+/* PayPal Vault Option */
+.paypal-vault-option {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+.vault-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.vault-checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.checkmark-box {
+    display: none;
+}
+
+.vault-text {
+    flex: 1;
+}
+
+.vault-description {
+    margin: 0;
+    padding-left: 30px;
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
+}
+
+/* Confirm Payment Button */
+.confirm-payment-btn {
+    width: 100%;
+    background-color: #333;
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    margin-top: 20px;
+    transition: background-color 0.2s;
+}
+
+.confirm-payment-btn:hover:not(:disabled) {
+    background-color: #000;
+}
+
+.confirm-payment-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Order Summary */
+.order-summary {
+    position: sticky;
+    top: 20px;
+    background-color: white;
+    padding: 0;
+}
+
+.summary-header {
+    margin-bottom: 20px;
+}
+
+.summary-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.total-amount {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+/* Place Order Button */
+.place-order-btn {
+    width: 100%;
+    background-color: #e5e5e5;
+    color: #999;
+    border: none;
+    padding: 18px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: not-allowed;
+    margin-bottom: 15px;
+    transition: all 0.2s;
+}
+
+.place-order-btn:not(:disabled) {
+    background-color: #333;
+    color: white;
+    cursor: pointer;
+}
+
+.place-order-btn:not(:disabled):hover {
+    background-color: #000;
+}
+
+/* PayPal Button Container */
+#paypalButtonContainer {
+    margin-bottom: 15px;
+}
+
+/* Terms Text */
+.terms-text {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 30px;
+}
+
+.terms-text a {
+    color: #333;
+    text-decoration: underline;
+}
+
+.terms-text a:hover {
+    color: #000;
+}
+
+/* Summary Details */
+.summary-details h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.item-info {
+    display: flex;
+    gap: 12px;
+}
+
+.item-info img {
+    width: 60px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.item-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.item-qty {
+    font-size: 13px;
+    color: #666;
+}
+
+.item-price {
+    font-weight: 600;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    font-size: 15px;
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 0;
+    border-top: 1px solid #e5e5e5;
+    margin-top: 10px;
+}
+
+.summary-total > div {
+    text-align: right;
+}
+
+.total-price {
+    font-size: 18px;
+    margin-bottom: 4px;
+}
+
+.duties-text {
+    font-size: 12px;
+    color: #666;
+}
+
+/* Promo Section */
+.promo-section {
+    margin: 25px 0;
+}
+
+.promo-section label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.promo-section input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.promo-section input:focus {
+    outline: none;
+    border-color: #333;
+}
+
+.referral-link {
+    font-size: 13px;
+    color: #333;
+    text-decoration: underline;
+}
+
+.referral-link:hover {
+    color: #000;
+}
+
+/* Returns Badge */
+.returns-badge {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+
+.returns-badge .free-badge {
+    background-color: #333;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .checkout-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+    
+    .order-summary {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .checkout-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px 20px;
+        text-align: center;
+    }
+    
+    .checkout-content {
+        padding: 20px;
+    }
+    
+    .payment-methods {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-content {
+        padding-left: 0;
+    }
+}

@@ -9,6 +9,7 @@ import json
 import uuid
 import requests
 from requests.auth import HTTPBasicAuth
+import base64
 
 
 from threading import Thread
@@ -49,7 +50,7 @@ class PP_CREDENTIALS(Enum):
         "password": "EIbrrlOv2mI9okw9-YQJRNarqDUOrCOreBgEYeHkjeEh3lDMhytGCLqrIlVXrENb8GC394022048af3B"
     }
 
-    FOR_FLASK = LEACHONG_US
+    FOR_FLASK = LEACHONG
 
     #my leachong@paypal.com
     #username='AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg' #client id
@@ -68,14 +69,14 @@ gateway = braintree.BraintreeGateway(
     braintree.Configuration(
         braintree.Environment.Sandbox,
         #bt cvenchong@gmail.com
-        # merchant_id="9dxqqftdw4x6jfbr",
-        # public_key="jvh5brdvvfkp5sc8",
-        # private_key="3ede1f4c980113e88173b110124f3607"
+        merchant_id="9dxqqftdw4x6jfbr",
+        public_key="jvh5brdvvfkp5sc8",
+        private_key="3ede1f4c980113e88173b110124f3607"
 
         #bt cvenchong+us@gmail.com
-        merchant_id="d6dyn57dn7yysw2b",
-        public_key="6285k8qst8wybnkd",
-        private_key="073d630c7b39ebf0bf47d34e8c3562c7"
+        # merchant_id="d6dyn57dn7yysw2b",
+        # public_key="6285k8qst8wybnkd",
+        # private_key="073d630c7b39ebf0bf47d34e8c3562c7"
 
         #chai heng account
         # merchant_id="mq3fyc7sdb4vgngm",
@@ -112,13 +113,18 @@ class MAID(Enum):
     EUR_PT_HUAWEI = "huawei_PT_EUR"
     GBP_UK_HUAWEI = "huawei_UK_GBP"
     #for use with gateway d6dyn57dn7yysw2b
-    USD_US_TEST = "stevenustest"
+    stevenustest = "stevenustest" #USD
+    stevenustest_GBP = "stevenustest_GBP" #GBP
+    leachong_EUR = "leachong_EUR"
+    leachong_USD = "leachong_USD"
+    RVCR_PT_EUR = "RVCR_PT_EUR"
+    RVCR_PT_USD = "RVCR_PT_USD"
 
 
     CHAIHENG_MAID = "paypal"
 
 
-PROCESSING_MAID = MAID.USD_US_TEST.value
+PROCESSING_MAID = MAID.stevenustest_GBP.value
 
 #merchant account id
 class SUBSCRIPTION_PLAN_ID(Enum): #support min month. No weekly billing cycle.
@@ -362,6 +368,31 @@ def page_paypal():
     """Render PayPal playground page (templates/paypal.html)."""
     return render_template("paypal.html")
 
+
+@app.route("/checkout/farfetch", methods=["GET"])
+def page_farfetch_checkout():
+    """Render Farfetch-style checkout page."""
+    return render_template("public/paypal/js-sdk/sdk/farfetch/farfetch.html")
+
+
+@app.route("/client-side-card-tokenization", methods=["GET"])
+def page_client_side_card_tokenization():
+    """Render client-side card tokenization page (PCI SAQ D compliant)."""
+    return render_template("client_side_ql_card_tokenization.html")
+
+
+@app.route("/server-side-card-tokenization", methods=["GET"])
+def page_server_side_card_tokenization():
+    """Render server-side card tokenization page (PCI SAQ D compliant)."""
+    return render_template("server_side_ql_card_tokenization.html")
+
+
+@app.route("/server-side-graphql-card-tokenization", methods=["GET"])
+def page_server_side_graphql_card_tokenization():
+    """Render server-side GraphQL card tokenization page (PCI SAQ D compliant)."""
+    return render_template("server_side_graphql_card_tokenization.html")
+
+
 @app.route("/braintree/sdk/auth/client", methods=["POST"])
 def public_bt_client_token():
     data = request.get_json()
@@ -389,6 +420,903 @@ def api_playground_client_token():
         "success": True,
         "clientToken": token
     })
+
+
+@app.route("/api/tokenize-card", methods=["POST"])
+def api_tokenize_card():
+    """Server-side card tokenization endpoint.
+    Receives raw card data and tokenizes it using Braintree gateway.
+    WARNING: Requires PCI DSS SAQ D compliance.
+    """
+    try:
+        data = request.get_json()
+        
+        # Extract card data
+        card_number = data.get("cardNumber")
+        expiration_date = data.get("expirationDate")
+        cvv = data.get("cvv")
+        cardholder_name = data.get("cardholderName")
+        billing_address = data.get("billingAddress")
+        
+        # Validate required fields
+        if not card_number or not expiration_date or not cvv:
+            return jsonify({
+                "success": False,
+                "error": "Missing required card fields"
+            }), 400
+        
+        # Build credit card params for Braintree
+        card_params = {
+            "number": card_number,
+            "expiration_date": expiration_date,
+            "cvv": cvv,
+            "options": {
+                "verify_card": False  # Set to True to verify with gateway
+            }
+        }
+        
+        # Add cardholder name if provided
+        if cardholder_name:
+            card_params["cardholder_name"] = cardholder_name
+        
+        # Add billing address if provided
+        if billing_address:
+            card_params["billing_address"] = {}
+            if billing_address.get("postalCode"):
+                card_params["billing_address"]["postal_code"] = billing_address["postalCode"]
+            if billing_address.get("streetAddress"):
+                card_params["billing_address"]["street_address"] = billing_address["streetAddress"]
+            if billing_address.get("locality"):
+                card_params["billing_address"]["locality"] = billing_address["locality"]
+            if billing_address.get("region"):
+                card_params["billing_address"]["region"] = billing_address["region"]
+            if billing_address.get("countryCodeAlpha2"):
+                card_params["billing_address"]["country_code_alpha2"] = billing_address["countryCodeAlpha2"]
+        
+        print("Server-side tokenization request:", {
+            **card_params,
+            "number": "****",
+            "cvv": "***"
+        })
+        
+        # Tokenize using Braintree gateway
+        result = gateway.payment_method.create({
+            "customer_id": None,  # Not associating with a customer
+            "payment_method_nonce": None,
+            "credit_card": card_params
+        })
+        
+        printBTResponse(result)
+        
+        if result.is_success:
+            credit_card = result.payment_method
+            return jsonify({
+                "success": True,
+                "nonce": credit_card.token,
+                "cardType": credit_card.card_type,
+                "lastFour": credit_card.last_4,
+                "lastTwo": credit_card.last_4[-2:] if len(credit_card.last_4) >= 2 else credit_card.last_4,
+                "bin": credit_card.bin,
+                "expirationMonth": credit_card.expiration_month,
+                "expirationYear": credit_card.expiration_year,
+                "cardholderName": credit_card.cardholder_name if hasattr(credit_card, 'cardholder_name') else None
+            })
+        else:
+            error_messages = []
+            if hasattr(result, 'errors'):
+                for error in result.errors.deep_errors:
+                    error_messages.append(f"{error.code}: {error.message}")
+            
+            error_text = "; ".join(error_messages) if error_messages else result.message
+            
+            return jsonify({
+                "success": False,
+                "error": error_text,
+                "details": error_messages
+            }), 400
+            
+    except Exception as e:
+        print(f"Error in server-side tokenization: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/tokenize-card-graphql", methods=["POST"])
+def api_tokenize_card_graphql():
+    """Server-side card tokenization endpoint using Braintree GraphQL API.
+    Receives raw card data and tokenizes it using Braintree GraphQL.
+    WARNING: Requires PCI DSS SAQ D compliance.
+    """
+    try:
+        data = request.get_json()
+        
+        # Extract card data
+        card_number = data.get("cardNumber")
+        expiration_date = data.get("expirationDate")
+        cvv = data.get("cvv")
+        cardholder_name = data.get("cardholderName")
+        billing_address = data.get("billingAddress")
+        
+        # Validate required fields
+        if not card_number or not expiration_date or not cvv:
+            return jsonify({
+                "success": False,
+                "error": "Missing required card fields"
+            }), 400
+        
+        # Parse expiration date (MM/YY)
+        if '/' in expiration_date:
+            month, year = expiration_date.split('/')
+            # Convert YY to YYYY
+            if len(year) == 2:
+                year = '20' + year
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Invalid expiration date format. Use MM/YY"
+            }), 400
+        
+        # Build GraphQL mutation
+        graphql_mutation = """
+            mutation TokenizeCreditCard($input: TokenizeCreditCardInput!) {
+                tokenizeCreditCard(input: $input) {
+                    paymentMethod {
+                        id
+                        usage
+                        details {
+                            ... on CreditCardDetails {
+                                brandCode
+                                last4
+                                bin
+                                expirationMonth
+                                expirationYear
+                                cardholderName
+                            }
+                        }
+                    }
+                }
+            }
+        """
+        
+        # Build input variables
+        credit_card_input = {
+            "number": card_number,
+            "expirationMonth": month,
+            "expirationYear": year,
+            "cvv": cvv
+        }
+        
+        if cardholder_name:
+            credit_card_input["cardholderName"] = cardholder_name
+        
+        if billing_address:
+            address_input = {}
+            if billing_address.get("postalCode"):
+                address_input["postalCode"] = billing_address["postalCode"]
+            if billing_address.get("streetAddress"):
+                address_input["streetAddress"] = billing_address["streetAddress"]
+            if billing_address.get("locality"):
+                address_input["locality"] = billing_address["locality"]
+            if billing_address.get("region"):
+                address_input["region"] = billing_address["region"]
+            if billing_address.get("countryCodeAlpha2"):
+                address_input["countryCode"] = billing_address["countryCodeAlpha2"]
+            
+            if address_input:
+                credit_card_input["billingAddress"] = address_input
+        
+        variables = {
+            "input": {
+                "creditCard": credit_card_input
+            }
+        }
+        
+        # Log request (with masked data)
+        print("GraphQL tokenization request:", {
+            "mutation": "tokenizeCreditCard",
+            "cardNumber": "****",
+            "cvv": "***",
+            "hasAddress": bool(billing_address)
+        })
+        
+        # Get client token for authorization
+        client_token = getClientToken()
+
+        # To obtain an authorization fingerprint you must Base64 decode a client token, the decoded client token will contain an authorizationFingerprint value, which can then be passed in the Authorization header.
+        decoded_token = base64.b64decode(client_token).decode('utf-8')
+        token_info = json.loads(decoded_token)
+        authorization_fingerprint = token_info.get("authorizationFingerprint")
+
+        # Make GraphQL request to Braintree
+        graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
+        
+        graphql_response = requests.post(
+            graphql_url,
+            headers={
+                "Authorization": f"Bearer {authorization_fingerprint}",
+                "Braintree-Version": "2025-11-19",
+                "Content-Type": "application/json"
+            },
+            json={
+                "query": graphql_mutation,
+                "variables": variables
+            }
+        )
+        
+        graphql_response.raise_for_status()
+        result = graphql_response.json()
+        
+        print("GraphQL Response:")
+        print(json.dumps(result, indent=2))
+        
+        # Check for GraphQL errors
+        if "errors" in result:
+            error_messages = []
+            for error in result["errors"]:
+                error_messages.append(error.get("message", "Unknown error"))
+            
+            return jsonify({
+                "success": False,
+                "error": "; ".join(error_messages),
+                "details": result["errors"]
+            }), 400
+        
+        # Extract payment method data
+        if "data" in result and "tokenizeCreditCard" in result["data"]:
+            payment_method = result["data"]["tokenizeCreditCard"]["paymentMethod"]
+            details = payment_method["details"]
+            
+            return jsonify({
+                "success": True,
+                "nonce": payment_method["id"],
+                "usage": payment_method["usage"],
+                "cardType": details["brandCode"],
+                "lastFour": details["last4"],
+                "bin": details["bin"],
+                "expirationMonth": details["expirationMonth"],
+                "expirationYear": details["expirationYear"],
+                "cardholderName": details.get("cardholderName"),
+                "graphqlResponse": result
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Unexpected GraphQL response format",
+                "details": result
+            }), 500
+            
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error in GraphQL tokenization: {str(e)}")
+        try:
+            error_details = e.response.json()
+            return jsonify({
+                "success": False,
+                "error": "GraphQL request failed",
+                "details": error_details
+            }), e.response.status_code
+        except:
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+    except Exception as e:
+        print(f"Error in GraphQL tokenization: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/lookup-3ds-graphql", methods=["POST"])
+def api_lookup_3ds_graphql():
+    """Perform 3DS lookup using Braintree GraphQL API.
+    
+    This is called after client-side prepareLookup() completes.
+    
+    Request body:
+    {
+        "nonce": "payment_method_nonce",
+        "bin": "411111",
+        "amount": "10.00",
+        "email": "customer@example.com",
+        "billingAddress": {...},
+        "browserInfo": {
+            "javaEnabled": false,
+            "acceptHeader": "...",
+            "language": "en-US",
+            "colorDepth": 24,
+            "screenHeight": 1080,
+            "screenWidth": 1920,
+            "timeZone": "-480",
+            "userAgent": "...",
+            "javascriptEnabled": true
+        },
+        "ipAddress": "192.168.1.1"
+    }
+    """
+    try:
+        data = request.json
+        print("Received JSON for 3DS lookup:", data)
+        
+        nonce = data.get("nonce")
+        amount = data.get("amount")
+        bin = data.get("bin")
+        email = data.get("email")
+
+        merchantAccountId = data.get("merchantAccountId", PROCESSING_MAID)
+
+        prepareLookupResult = data.get("prepareLookupResult", {}) #make this into a json object and access its data
+        prepareLookupResult = json.loads(prepareLookupResult)
+        
+        dfReferenceId = prepareLookupResult.get("dfReferenceId", {})
+        
+        transactionInformation = data.get("transactionInformation", {})
+        
+        cardHolderInfo = data.get("cardHolderInfo", {})
+        
+        requestedExemptionTypes = data.get("requestedExemptionTypes", None)
+        requestAuthenticationChallenge = data.get("requestAuthenticationChallenge", False)
+        
+        
+        
+        if not nonce or not amount:
+            return jsonify({
+                "success": False,
+                "error": "Missing required fields: nonce and amount"
+            }), 400
+        
+        # Build GraphQL mutation for 3DS lookup
+        graphql_mutation = """
+            mutation PerformThreeDSecureLookup($input: PerformThreeDSecureLookupInput!) {
+                performThreeDSecureLookup(input: $input) {
+                    clientMutationId
+                    threeDSecureLookupData {
+                        authenticationId
+                    }
+                    paymentMethod {
+                        id
+                        usage
+                        details {
+                            ... on CreditCardDetails {
+                                bin
+                                brandCode
+                                last4
+                                threeDSecure {
+                                    authentication {
+                                        cavv
+                                        eciFlag
+                                        liabilityShifted
+                                        liabilityShiftPossible
+                                        threeDSecureVersion
+                                        transactionId
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        """
+        
+        # Build lookup input
+        lookup_input = {
+            "paymentMethodId": nonce,
+            "amount": str(amount),
+            "dfReferenceId": dfReferenceId,
+            "requestedExemptionTypes": requestedExemptionTypes,
+            "requestAuthenticationChallenge": requestAuthenticationChallenge,
+            "cardHolderInfo": cardHolderInfo,
+            "transactionInformation": transactionInformation,
+            "merchantAccountId": merchantAccountId
+        }
+        
+        # # Add browser information if provided
+        # if browser_info:
+        #     browser_information = {}
+            
+        #     if browser_info.get("javaEnabled") is not None:
+        #         browser_information["javaEnabled"] = browser_info["javaEnabled"]
+        #     if browser_info.get("javascriptEnabled") is not None:
+        #         browser_information["javascriptEnabled"] = browser_info["javascriptEnabled"]
+        #     if browser_info.get("acceptHeader"):
+        #         browser_information["acceptHeader"] = browser_info["acceptHeader"]
+        #     if browser_info.get("language"):
+        #         browser_information["language"] = browser_info["language"]
+        #     if browser_info.get("colorDepth"):
+        #         browser_information["colorDepth"] = int(browser_info["colorDepth"])
+        #     if browser_info.get("screenHeight"):
+        #         browser_information["screenHeight"] = int(browser_info["screenHeight"])
+        #     if browser_info.get("screenWidth"):
+        #         browser_information["screenWidth"] = int(browser_info["screenWidth"])
+        #     if browser_info.get("timeZone"):
+        #         browser_information["timeZone"] = str(browser_info["timeZone"])
+        #     if browser_info.get("userAgent"):
+        #         browser_information["userAgent"] = browser_info["userAgent"]
+            
+        #     if browser_information:
+        #         lookup_input["transactionInformation"]["browserInformation"] = browser_information
+        
+        # Add IP address if provided
+        # if ip_address:
+        #     lookup_input["transactionInformation"]["ipAddress"] = ip_address
+        
+        variables = {
+            "input": lookup_input
+        }
+        
+        #print lookup input
+        print("GraphQL 3DS lookup request:", {
+            "lookup_input": lookup_input
+        })
+        
+        # Get client token for authorization
+        client_token = getClientTokenMAID(merchantAccountId)
+        
+        # Make GraphQL request
+        graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
+        
+        graphql_response = requests.post(
+            graphql_url,
+            headers={
+                "Authorization": f"Bearer {client_token}",
+                "Braintree-Version": "2021-02-01",
+                "Content-Type": "application/json"
+            },
+            json={
+                "query": graphql_mutation,
+                "variables": variables
+            }
+        )
+        
+        graphql_response.raise_for_status()
+        result = graphql_response.json()
+        
+        print("GraphQL 3DS Lookup Response:")
+        print(json.dumps(result, indent=2))
+        
+        # Check for GraphQL errors
+        if "errors" in result:
+            error_messages = []
+            for error in result["errors"]:
+                error_messages.append(error.get("message", "Unknown error"))
+            
+            return jsonify({
+                "success": False,
+                "error": "; ".join(error_messages),
+                "details": result["errors"]
+            }), 400
+        
+        # Extract lookup data
+        if "data" in result and "performThreeDSecureLookup" in result["data"]:
+            lookup_data = result["data"]["performThreeDSecureLookup"]
+            payment_method = lookup_data["paymentMethod"]
+            three_ds_lookup = lookup_data.get("threeDSecureLookupData", {})
+            
+            # Extract card details and 3DS authentication info
+            card_details = payment_method.get("details", {})
+            three_ds_auth = card_details.get("threeDSecure", {}).get("authentication", {})
+            
+            return jsonify({
+                "success": True,
+                "nonce": payment_method["id"],
+                "authenticationId": three_ds_lookup.get("authenticationId"),
+                "bin": card_details.get("bin"),
+                "brandCode": card_details.get("brandCode"),
+                "lastFour": card_details.get("last4"),
+                "threeDSecure": {
+                    "cavv": three_ds_auth.get("cavv"),
+                    "eciFlag": three_ds_auth.get("eciFlag"),
+                    "liabilityShifted": three_ds_auth.get("liabilityShifted"),
+                    "liabilityShiftPossible": three_ds_auth.get("liabilityShiftPossible"),
+                    "threeDSecureVersion": three_ds_auth.get("threeDSecureVersion"),
+                    "transactionId": three_ds_auth.get("transactionId")
+                },
+                "graphqlResponse": result
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Unexpected GraphQL response format",
+                "details": result
+            }), 500
+            
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error in GraphQL 3DS lookup: {str(e)}")
+        try:
+            error_details = e.response.json()
+            return jsonify({
+                "success": False,
+                "error": "GraphQL request failed",
+                "details": error_details
+            }), e.response.status_code
+        except:
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+    except Exception as e:
+        print(f"Error in GraphQL 3DS lookup: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/charge-payment-graphql", methods=["POST"])
+def api_charge_payment_graphql():
+    """Process payment using Braintree GraphQL API.
+    
+    Request body:
+    {
+        "nonce": "3ds_verified_nonce",
+        "amount": "10.00",
+        "deviceData": "device_data_from_collector",
+        "orderId": "ORDER-123"
+    }
+    """
+    try:
+        data = request.json
+        
+        nonce = data.get("nonce")
+        amount = data.get("amount")
+        device_data = data.get("deviceData")
+        order_id = data.get("orderId")
+        
+        if not nonce or not amount:
+            return jsonify({
+                "success": False,
+                "error": "Missing required fields: nonce and amount"
+            }), 400
+        
+        # Build GraphQL mutation for charge
+        graphql_mutation = """
+            mutation ChargePaymentMethod($input: ChargePaymentMethodInput!) {
+                chargePaymentMethod(input: $input) {
+                    transaction {
+                        id
+                        legacyId
+                        createdAt
+                        amount {
+                            value
+                            currencyIsoCode
+                        }
+                        orderId
+                        status
+                        statusHistory {
+                            status
+                            timestamp
+                        }
+                        merchantAccountId
+                        paymentMethodSnapshot {
+                            ... on CreditCardDetails {
+                                brandCode
+                                last4
+                                cardholderName
+                            }
+                        }
+                    }
+                }
+            }
+        """
+        
+        # Build charge input
+        charge_input = {
+            "paymentMethodId": nonce,
+            "transaction": {
+                "amount": str(amount)
+            },
+            "options": {
+                "submitForSettlement": True
+            }
+        }
+        
+        if order_id:
+            charge_input["transaction"]["orderId"] = order_id
+        
+        if device_data:
+            charge_input["transaction"]["riskData"] = {
+                "deviceData": device_data
+            }
+        
+        variables = {
+            "input": charge_input
+        }
+        
+        print("GraphQL payment request:", {
+            "nonce": nonce[:10] + "...",
+            "amount": amount,
+            "orderId": order_id
+        })
+        
+        # Get client token for authorization
+        client_token = getClientToken()
+        
+        # Make GraphQL request
+        graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
+        
+        graphql_response = requests.post(
+            graphql_url,
+            headers={
+                "Authorization": f"Bearer {client_token}",
+                "Braintree-Version": "2021-02-01",
+                "Content-Type": "application/json"
+            },
+            json={
+                "query": graphql_mutation,
+                "variables": variables
+            }
+        )
+        
+        graphql_response.raise_for_status()
+        result = graphql_response.json()
+        
+        print("GraphQL Payment Response received")
+        
+        # Check for GraphQL errors
+        if "errors" in result:
+            error_messages = []
+            for error in result["errors"]:
+                error_messages.append(error.get("message", "Unknown error"))
+            
+            return jsonify({
+                "success": False,
+                "error": "; ".join(error_messages),
+                "details": result["errors"]
+            }), 400
+        
+        # Extract transaction data
+        if "data" in result and "chargePaymentMethod" in result["data"]:
+            transaction = result["data"]["chargePaymentMethod"]["transaction"]
+            
+            # Format payment method info
+            payment_method_info = {}
+            snapshot = transaction.get("paymentMethodSnapshot")
+            if snapshot and "brandCode" in snapshot:
+                payment_method_info = {
+                    "brand": snapshot.get("brandCode"),
+                    "last4": snapshot.get("last4"),
+                    "cardholderName": snapshot.get("cardholderName")
+                }
+            
+            return jsonify({
+                "success": True,
+                "transactionId": transaction["id"],
+                "legacyId": transaction.get("legacyId"),
+                "amount": transaction["amount"]["value"],
+                "currency": transaction["amount"]["currencyIsoCode"],
+                "status": transaction["status"],
+                "orderId": transaction.get("orderId"),
+                "createdAt": transaction.get("createdAt"),
+                "paymentMethod": payment_method_info,
+                "graphqlResponse": result
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Unexpected GraphQL response format",
+                "details": result
+            }), 500
+            
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error in GraphQL payment: {str(e)}")
+        try:
+            error_details = e.response.json()
+            return jsonify({
+                "success": False,
+                "error": "GraphQL request failed",
+                "details": error_details
+            }), e.response.status_code
+        except:
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+    except Exception as e:
+        print(f"Error in GraphQL payment: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/transactions-graphql", methods=["GET"])
+def api_get_transactions_graphql():
+    """Get transaction list using Braintree GraphQL API.
+    Query params:
+    - first: number of transactions to retrieve (default 10, max 100)
+    - status: filter by status (e.g., SETTLED, AUTHORIZED)
+    - customerId: filter by customer ID
+    """
+    try:
+        # Get query parameters
+        first = min(int(request.args.get("first", 10)), 100)  # Max 100 per request
+        status = request.args.get("status")
+        customer_id = request.args.get("customerId")
+        
+        # Build GraphQL query
+        graphql_query = """
+            query SearchTransactions($input: TransactionSearchInput!, $first: Int!) {
+                search {
+                    transactions(input: $input, first: $first) {
+                        edges {
+                            node {
+                                id
+                                legacyId
+                                createdAt
+                                amount {
+                                    value
+                                    currencyIsoCode
+                                }
+                                orderId
+                                status
+                                merchantAccountId
+                                paymentMethodSnapshot {
+                                    ... on CreditCardDetails {
+                                        brandCode
+                                        last4
+                                        cardholderName
+                                    }
+                                    ... on PayPalTransactionDetails {
+                                        payer {
+                                            email
+                                            firstName
+                                            lastName
+                                        }
+                                    }
+                                }
+                                statusHistory {
+                                    status
+                                    timestamp
+                                    amount {
+                                        value
+                                    }
+                                }
+                            }
+                            cursor
+                        }
+                        pageInfo {
+                            hasNextPage
+                            hasPreviousPage
+                        }
+                    }
+                }
+            }
+        """
+        
+        # Build search input
+        search_input = {}
+        
+        if status:
+            search_input["status"] = {"is": status}
+        
+        if customer_id:
+            search_input["customerId"] = {"is": customer_id}
+        
+        variables = {
+            "input": search_input if search_input else {},
+            "first": first
+        }
+        
+        # Log request
+        print("GraphQL transaction search request:", {
+            "first": first,
+            "filters": search_input
+        })
+        
+        # Get client token for authorization
+        client_token = getClientToken()
+        
+        # Make GraphQL request to Braintree
+        graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
+        
+        graphql_response = requests.post(
+            graphql_url,
+            headers={
+                "Authorization": f"Bearer {client_token}",
+                "Braintree-Version": "2021-02-01",
+                "Content-Type": "application/json"
+            },
+            json={
+                "query": graphql_query,
+                "variables": variables
+            }
+        )
+        
+        graphql_response.raise_for_status()
+        result = graphql_response.json()
+        
+        print("GraphQL Response received")
+        
+        # Check for GraphQL errors
+        if "errors" in result:
+            error_messages = []
+            for error in result["errors"]:
+                error_messages.append(error.get("message", "Unknown error"))
+            
+            return jsonify({
+                "success": False,
+                "error": "; ".join(error_messages),
+                "details": result["errors"]
+            }), 400
+        
+        # Extract transaction data
+        if "data" in result and "search" in result["data"]:
+            search_data = result["data"]["search"]
+            transactions = search_data["transactions"]
+            
+            # Format transactions for easier consumption
+            formatted_transactions = []
+            for edge in transactions["edges"]:
+                node = edge["node"]
+                
+                # Extract payment method info
+                payment_method_info = {}
+                snapshot = node.get("paymentMethodSnapshot")
+                if snapshot:
+                    if "brandCode" in snapshot:  # Credit card
+                        payment_method_info = {
+                            "type": "credit_card",
+                            "brand": snapshot.get("brandCode"),
+                            "last4": snapshot.get("last4"),
+                            "cardholderName": snapshot.get("cardholderName")
+                        }
+                    elif "payer" in snapshot:  # PayPal
+                        payer = snapshot["payer"]
+                        payment_method_info = {
+                            "type": "paypal",
+                            "email": payer.get("email"),
+                            "name": f"{payer.get('firstName', '')} {payer.get('lastName', '')}".strip()
+                        }
+                
+                formatted_transactions.append({
+                    "id": node["id"],
+                    "legacyId": node.get("legacyId"),
+                    "createdAt": node.get("createdAt"),
+                    "amount": node["amount"]["value"],
+                    "currency": node["amount"]["currencyIsoCode"],
+                    "orderId": node.get("orderId"),
+                    "status": node["status"],
+                    "merchantAccountId": node.get("merchantAccountId"),
+                    "paymentMethod": payment_method_info,
+                    "statusHistoryCount": len(node.get("statusHistory", []))
+                })
+            
+            return jsonify({
+                "success": True,
+                "transactions": formatted_transactions,
+                "count": len(formatted_transactions),
+                "pageInfo": transactions["pageInfo"],
+                "graphqlResponse": result
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Unexpected GraphQL response format",
+                "details": result
+            }), 500
+            
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP Error in GraphQL transaction search: {str(e)}")
+        try:
+            error_details = e.response.json()
+            return jsonify({
+                "success": False,
+                "error": "GraphQL request failed",
+                "details": error_details
+            }), e.response.status_code
+        except:
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
+    except Exception as e:
+        print(f"Error in GraphQL transaction search: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 def build_playground_sale_request(amount, nonce, merchant_account_id=None, submit_for_settlement=True, device_data=None, order_id=None):
@@ -756,6 +1684,33 @@ def createPaymentMethod(customerId, pmt_nonce, merchantAccountId=None):
         })
 
 
+def decode_base64(encoded_string):
+    """
+    Decode a base64 encoded string.
+    
+    Args:
+        encoded_string (str): Base64 encoded string to decode
+        
+    Returns:
+        str: Decoded string
+        
+    Raises:
+        Exception: If decoding fails
+    """
+    try:
+        decoded_bytes = base64.b64decode(encoded_string)
+        decoded_string = decoded_bytes.decode('utf-8')
+
+        # Detect if it is JSON, if yes, pretty print it
+        try:
+            json_data = json.loads(decoded_string)
+            print("Decoded JSON:", json.dumps(json_data, indent=2))
+        except json.JSONDecodeError:
+            print("Decoded string:", decoded_string)
+        return decoded_string
+    except Exception as e:
+        raise Exception(f"Failed to decode base64 string: {e}")
+
 def safe_to_dict(obj):
     # Handle objects with to_dict method
     if hasattr(obj, "to_dict"):
@@ -1042,7 +1997,34 @@ def completePPCheckout():
         "orderID": orderID
     }) 
 
-def post_pp_auth_order(clientToken, orderID, FN_SESSION_ID):
+
+
+@app.route("/authorize_pp_order", methods=["POST"])
+def authorize_pp_order():
+    data = request.get_json()
+    print("Received JSON:", data)  # Print the whole payload
+    #custId = data.get("custId")  # ✅ returns None instead of error if key is not present
+    
+    #try to retrieve client token from data
+    clientId = data.get("client_id")
+    clientSecret = data.get("client_secret")
+    #remove clientId and clientSecret from data to avoid issues
+    data.pop("client_id", None)
+    data.pop("client_secret", None)
+
+    orderID = data.get("orderID")
+
+    clientToken = post_pp_client_token(clientId, clientSecret)    
+    order_response = post_pp_auth_order(clientToken, orderID)
+
+    return jsonify({
+            "success": True,
+            "order_response": order_response
+        })
+
+
+
+def post_pp_auth_order(clientToken, orderID, FN_SESSION_ID = None):
     try:
         url = 'https://api-m.sandbox.paypal.com/v2/checkout/orders/' + orderID +'/authorize'
         payload ={}
@@ -1206,7 +2188,15 @@ def createPPOrderV2_Raw_Payload():
     data = request.get_json()
     print("Received JSON:", data)  # Print the whole payload
     #custId = data.get("custId")  # ✅ returns None instead of error if key is not present
-    clientToken = post_pp_client_token()    
+    
+    #try to retrieve client token from data
+    clientId = data.get("client_id")
+    clientSecret = data.get("client_secret")
+    #remove clientId and clientSecret from data to avoid issues
+    data.pop("client_id", None)
+    data.pop("client_secret", None)
+
+    clientToken = post_pp_client_token(clientId, clientSecret)    
     order_response = post_pp_create_order_raw(clientToken, data)
 
     return jsonify({
@@ -1316,8 +2306,11 @@ def post_pp_create_order(token, FN_SESSION_ID, vaultOnSuccess=False, vaultedToke
                             "payment_method_preference": "IMMEDIATE_PAYMENT_REQUIRED",
                             "shipping_preference": "SET_PROVIDED_ADDRESS",
                             "user_action": "PAY_NOW",
-                            "return_url": "http://bt-steven-2025.ap-southeast-1.elasticbeanstalk.com/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID,
-                            "cancel_url": "http://bt-steven-2025.ap-southeast-1.elasticbeanstalk.com/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID
+                            "return_url": "https://bt-2025.onrender.com/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID,
+                            "cancel_url": "https://bt-2025.onrender.com/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID
+
+#                            "return_url": "http://127.0.0.1/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID,
+#                            "cancel_url": "http://127.0.0.1/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID
                         }
                     }
                 }
@@ -1692,16 +2685,24 @@ def send_pp_payout(clientToken, currency, amount, payout_receiver_email_list):
         raise Exception(f"Failed to create order: {e}")
 
 
-# # Only run test function in the main process
-# if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-#     # result = gateway.transaction.sale({
-#     #     "amount": "10.00",
-#     #     "credit_card": {
-#     #         "expiration_date": "01/2029",
-#     #         "number":"4023898493988028",
-#     #     },
-#     # })
+# Only run test function in the main process
+if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+
+    decode_base64('eyJ0cmFuc2FjdGlvbl9pZCI6IjlBVDU0MDY1WFc5MjE5MzRSIiwicmVmdW5kdHlwZSI6IkZVTEwiLCJyZWZ1bmRfc291cmNlIjoiVU5SRVNUUklDVEVEIn0=')
+
+    decode_base64('eyJ2ZXJzaW9uIjoiMjA0LjAiLCJtZXNzYWdlX3N1Yl9pZCI6IjFkZWYxOGIxLWE3ZTMtNGZkYS1iMTljLTk3Y2EyYzk0OTMxYSIsInRyYW5zYWN0aW9uX2lkIjoiNkgwMTExNjZHUDQyNDA2NEMiLCJpbnZvaWNlaWQiOiJGRlBQUldEMlROMkU2UTdaQldNOSIsInJlZnVuZHR5cGUiOiJGdWxsIiwibm90ZSI6IlJlZnVuZCAzMzU1NjExMSIsInJlZnVuZF9zb3VyY2UiOiJBbnkiLCJyZWZ1bmRfYWR2aWNlIjpmYWxzZX0=')
     
+    # result = gateway.transaction.sale({
+    #     "amount": "10.00",
+    #     "credit_card": {
+    #         "expiration_date": "01/2029",
+    #         "number":"4023898493988028",
+    #     },
+    # })
+
+#createTransaction(None, "10.00", "88776911803", False, "ab3g3whq", None)
+    
+
 #     # # Create and start the thread
 #     # thread = Thread(target=manageDisputeTest, args=(result.transaction.id,))
 #     # thread.start()
@@ -1740,7 +2741,8 @@ def send_pp_payout(clientToken, currency, amount, payout_receiver_email_list):
 if __name__ == "__main__":
 
     port = int(os.getenv('PORT', '5000'))
-    app.run(host='0.0.0.0', port=port)
+    #app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
     # Get the PORT environment variable, or use 5000 if not set
     # portNumber = int(os.environ.get("PORT", 5000))
     # # Bind to 0.0.0.0 to allow Render to connect

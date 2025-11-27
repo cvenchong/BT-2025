@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client-Side Card Tokenization - Braintree</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 30px;
+            color: #856404;
+            font-size: 14px;
+        }
+
+        .warning strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #d39e00;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="tel"],
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .row .form-group {
+            flex: 1;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .test-button {
+            width: 100%;
+            padding: 12px;
+            background: #f8f9fa;
+            color: #495057;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .test-button:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            color: #212529;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .result strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .result pre {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .pci-notice {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #0d47a1;
+        }
+
+        .pci-notice strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 Client-Side Card Tokenization</h1>
+        
+        <div class="pci-notice">
+            <strong>PCI DSS SAQ D Compliance Notice</strong>
+            This implementation assumes your environment is PCI DSS SAQ D compliant as card data is collected directly on your page.
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Security Warning</strong>
+            For SAQ A compliance (easiest PCI level), use Hosted Fields instead. Direct card tokenization requires full PCI compliance (SAQ D).
+        </div>
+
+        <button type="button" class="test-button" id="prefill-button">
+            🧪 Pre-fill Test Card (Visa)
+        </button>
+
+        <form id="payment-form">
+            <div class="form-group">
+                <label for="card-number">Card Number</label>
+                <input type="text" id="card-number" name="card-number" placeholder="4111 1111 1111 1111" maxlength="19" required>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="expiration-date">Expiration Date (MM/YY)</label>
+                    <input type="text" id="expiration-date" name="expiration-date" placeholder="12/25" maxlength="5" required>
+                </div>
+                <div class="form-group">
+                    <label for="cvv">CVV</label>
+                    <input type="text" id="cvv" name="cvv" placeholder="123" maxlength="4" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="cardholder-name">Cardholder Name</label>
+                <input type="text" id="cardholder-name" name="cardholder-name" placeholder="John Doe">
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="include-avs" name="include-avs">
+                <label for="include-avs">Include billing address for AVS checks</label>
+            </div>
+
+            <div id="avs-fields" style="display: none;">
+                <div class="form-group">
+                    <label for="postal-code">Postal Code</label>
+                    <input type="text" id="postal-code" name="postal-code" placeholder="12345">
+                </div>
+
+                <div class="form-group">
+                    <label for="street-address">Street Address</label>
+                    <input type="text" id="street-address" name="street-address" placeholder="123 Main St">
+                </div>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label for="locality">City</label>
+                        <input type="text" id="locality" name="locality" placeholder="San Francisco">
+                    </div>
+                    <div class="form-group">
+                        <label for="region">State/Region</label>
+                        <input type="text" id="region" name="region" placeholder="CA">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="country-code">Country Code</label>
+                    <select id="country-code" name="country-code">
+                        <option value="US">United States (US)</option>
+                        <option value="GB">United Kingdom (GB)</option>
+                        <option value="CA">Canada (CA)</option>
+                        <option value="AU">Australia (AU)</option>
+                        <option value="SG">Singapore (SG)</option>
+                        <option value="MY">Malaysia (MY)</option>
+                        <option value="HK">Hong Kong (HK)</option>
+                        <option value="PT">Portugal (PT)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-button">
+                <span id="button-text">Tokenize Card</span>
+                <span id="button-loading" style="display: none;" class="loading"></span>
+            </button>
+        </form>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <!-- Braintree Web SDK -->
+    <script src="https://js.braintreegateway.com/web/3.103.0/js/client.min.js"></script>
+
+    <script>
+        // State management
+        let clientInstance = null;
+
+        // DOM elements
+        const form = document.getElementById('payment-form');
+        const submitButton = document.getElementById('submit-button');
+        const buttonText = document.getElementById('button-text');
+        const buttonLoading = document.getElementById('button-loading');
+        const resultDiv = document.getElementById('result');
+        const includeAvsCheckbox = document.getElementById('include-avs');
+        const avsFields = document.getElementById('avs-fields');
+
+        // Format card number with spaces
+        const cardNumberInput = document.getElementById('card-number');
+        cardNumberInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\s+/g, '');
+            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+            e.target.value = formattedValue;
+        });
+
+        // Format expiration date
+        const expirationInput = document.getElementById('expiration-date');
+        expirationInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.slice(0, 2) + '/' + value.slice(2, 4);
+            }
+            e.target.value = value;
+        });
+
+        // Only allow numbers in CVV
+        const cvvInput = document.getElementById('cvv');
+        cvvInput.addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+
+        // Toggle AVS fields and pre-fill US address
+        includeAvsCheckbox.addEventListener('change', function() {
+            avsFields.style.display = this.checked ? 'block' : 'none';
+            
+            // Pre-fill with US address when checked
+            if (this.checked) {
+                document.getElementById('postal-code').value = '94107';
+                document.getElementById('street-address').value = '123 Market Street';
+                document.getElementById('locality').value = 'San Francisco';
+                document.getElementById('region').value = 'CA';
+                document.getElementById('country-code').value = 'US';
+            }
+        });
+
+        // Pre-fill test card button
+        const prefillButton = document.getElementById('prefill-button');
+        prefillButton.addEventListener('click', function() {
+            // Get current date for expiration
+            const today = new Date();
+            const month = String(today.getMonth() + 2).padStart(2, '0'); // Next month
+            const year = String(today.getFullYear() + 2).slice(-2); // 2 years from now
+            
+            // Fill card fields
+            document.getElementById('card-number').value = '4111 1111 1111 1111';
+            document.getElementById('expiration-date').value = `${month}/${year}`;
+            document.getElementById('cvv').value = '123';
+            document.getElementById('cardholder-name').value = 'John Doe';
+            
+            // Check AVS checkbox to show and fill address fields
+            if (!includeAvsCheckbox.checked) {
+                includeAvsCheckbox.checked = true;
+                includeAvsCheckbox.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Initialize Braintree client
+        async function initializeBraintree() {
+            try {
+                // Fetch client token from backend
+                const response = await fetch('/api/playground/client_token');
+                const data = await response.json();
+
+                if (!data.success || !data.clientToken) {
+                    throw new Error('Failed to get client token');
+                }
+
+                // Create Braintree client instance
+                clientInstance = await braintree.client.create({
+                    authorization: data.clientToken
+                });
+
+                console.log('Braintree client initialized successfully');
+            } catch (error) {
+                console.error('Error initializing Braintree:', error);
+                showResult('error', 'Failed to initialize payment system. Please refresh the page.');
+            }
+        }
+
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!clientInstance) {
+                showResult('error', 'Payment system not initialized. Please refresh the page.');
+                return;
+            }
+
+            // Disable button and show loading
+            setButtonLoading(true);
+            hideResult();
+
+            try {
+                // Get form values
+                const cardNumber = document.getElementById('card-number').value.replace(/\s+/g, '');
+                const expirationDate = document.getElementById('expiration-date').value;
+                const cvv = document.getElementById('cvv').value;
+                const cardholderName = document.getElementById('cardholder-name').value;
+                const includeAvs = document.getElementById('include-avs').checked;
+
+                // Validate required fields
+                if (!cardNumber || !expirationDate || !cvv) {
+                    throw new Error('Please fill in all required card fields');
+                }
+
+                // Build tokenization payload
+                const tokenizationData = {
+                    creditCard: {
+                        number: cardNumber,
+                        cvv: cvv,
+                        expirationDate: expirationDate,
+                        options: {
+                            validate: false // Set to true for server-side validation
+                        }
+                    }
+                };
+
+                // Add cardholder name if provided
+                if (cardholderName.trim()) {
+                    tokenizationData.creditCard.cardholderName = cardholderName;
+                }
+
+                // Add billing address for AVS checks if enabled
+                if (includeAvs) {
+                    const billingAddress = {};
+                    
+                    const postalCode = document.getElementById('postal-code').value;
+                    const streetAddress = document.getElementById('street-address').value;
+                    const locality = document.getElementById('locality').value;
+                    const region = document.getElementById('region').value;
+                    const countryCode = document.getElementById('country-code').value;
+
+                    if (postalCode) billingAddress.postalCode = postalCode;
+                    if (streetAddress) billingAddress.streetAddress = streetAddress;
+                    if (locality) billingAddress.locality = locality;
+                    if (region) billingAddress.region = region;
+                    if (countryCode) {
+                        billingAddress.countryCodeAlpha2 = countryCode;
+                        // You can also add countryName, countryCodeAlpha3, countryCodeNumeric
+                    }
+
+                    if (Object.keys(billingAddress).length > 0) {
+                        tokenizationData.creditCard.billingAddress = billingAddress;
+                    }
+                }
+
+                console.log('Tokenizing card with data:', {
+                    ...tokenizationData,
+                    creditCard: {
+                        ...tokenizationData.creditCard,
+                        number: '****',
+                        cvv: '***'
+                    }
+                });
+
+                // Tokenize the card using Braintree client
+                const response = await clientInstance.request({
+                    endpoint: 'payment_methods/credit_cards',
+                    method: 'post',
+                    data: tokenizationData
+                });
+
+                console.log('Tokenization successful:', response);
+
+                // Display success result
+                const nonce = response.creditCards[0].nonce;
+                const cardDetails = response.creditCards[0].details;
+                
+                showResult('success', 'Card tokenized successfully!', {
+                    nonce: nonce,
+                    cardType: cardDetails.cardType,
+                    lastFour: cardDetails.lastFour,
+                    lastTwo: cardDetails.lastTwo,
+                    bin: cardDetails.bin,
+                    expirationMonth: cardDetails.expirationMonth,
+                    expirationYear: cardDetails.expirationYear,
+                    fullResponse: response
+                });
+
+                // Clear form
+                form.reset();
+
+            } catch (error) {
+                console.error('Tokenization error:', error);
+                
+                let errorMessage = 'Failed to tokenize card. ';
+                if (error.message) {
+                    errorMessage += error.message;
+                } else if (error.details) {
+                    errorMessage += JSON.stringify(error.details);
+                }
+                
+                showResult('error', errorMessage, error);
+            } finally {
+                setButtonLoading(false);
+            }
+        });
+
+        // Helper functions
+        function setButtonLoading(loading) {
+            submitButton.disabled = loading;
+            buttonText.style.display = loading ? 'none' : 'inline';
+            buttonLoading.style.display = loading ? 'inline-block' : 'none';
+        }
+
+        function showResult(type, message, data = null) {
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+            
+            let html = `<strong>${message}</strong>`;
+            
+            if (data) {
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            }
+            
+            resultDiv.innerHTML = html;
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function hideResult() {
+            resultDiv.style.display = 'none';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeBraintree();
+        });
+    </script>
+</body>
+</html>
