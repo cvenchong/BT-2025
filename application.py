@@ -2306,11 +2306,11 @@ def post_pp_create_order(token, FN_SESSION_ID, vaultOnSuccess=False, vaultedToke
                             "payment_method_preference": "IMMEDIATE_PAYMENT_REQUIRED",
                             "shipping_preference": "SET_PROVIDED_ADDRESS",
                             "user_action": "PAY_NOW",
-                            "return_url": "https://bt-2025.onrender.com/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID,
-                            "cancel_url": "https://bt-2025.onrender.com/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID
+                             "return_url": "https://bt-2025.onrender.com/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID,
+                             "cancel_url": "https://bt-2025.onrender.com/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID
 
-#                            "return_url": "http://127.0.0.1/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID,
-#                            "cancel_url": "http://127.0.0.1/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID
+                            #"return_url": "http://127.0.0.1:5000/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID,
+                            #"cancel_url": "http://127.0.0.1:5000/complete_pp_checkout?vaultedtoken=" + vaultedToken + "&f=" + FN_SESSION_ID
                         }
                     }
                 }
@@ -2384,8 +2384,12 @@ def post_pp_create_order(token, FN_SESSION_ID, vaultOnSuccess=False, vaultedToke
                             "landing_page": "LOGIN",
                             "shipping_preference": "SET_PROVIDED_ADDRESS",
                             "user_action": "PAY_NOW",
-                            "return_url": "http://bt-steven-2025.ap-southeast-1.elasticbeanstalk.com/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
-                            "cancel_url": "http://bt-steven-2025.ap-southeast-1.elasticbeanstalk.com/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
+                             "return_url": "https://bt-2025.onrender.com/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
+                             "cancel_url": "https://bt-2025.onrender.com/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
+
+                            #"return_url": "http://127.0.0.1:5000/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
+                            #"cancel_url": "http://127.0.0.1:5000/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
+                        
                         }
                     }
                 }
@@ -2450,8 +2454,12 @@ def post_pp_create_order(token, FN_SESSION_ID, vaultOnSuccess=False, vaultedToke
                             "landing_page": "LOGIN",
                             "shipping_preference": "SET_PROVIDED_ADDRESS",
                             "user_action": "PAY_NOW",
-                            "return_url": "http://bt-steven-2025.ap-southeast-1.elasticbeanstalk.com/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
-                            "cancel_url": "http://bt-steven-2025.ap-southeast-1.elasticbeanstalk.com/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
+                            "return_url": "https://bt-2025.onrender.com/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
+                            "cancel_url": "https://bt-2025.onrender.com/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
+                        
+                            # "return_url": "http://127.0.0.1:5000/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
+                            # "cancel_url": "http://127.0.0.1:5000/complete_pp_checkout?isPatch=" + isPatch + "&f=" + FN_SESSION_ID,
+                        
                         }
                     }
                 }

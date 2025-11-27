@@ -129,7 +129,7 @@
     // 2) Expose to window (handy for debugging & your server-side logging)
 //    FN_SESSION_ID = 'quicskjafasdg'; // for testing only
 
-    window.__FRAUDNET__ = { f: FN_SESSION_ID, s: SOURCE_ID, sandbox: false };
+    window.__FRAUDNET__ = { f: FN_SESSION_ID, s: SOURCE_ID, sandbox: true };
 
     // 3) Show f on page
     document.getElementById("fn-session-id").textContent = FN_SESSION_ID;
