@@ -49,8 +49,14 @@ class PP_CREDENTIALS(Enum):
         "username": "AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX",
         "password": "EIbrrlOv2mI9okw9-YQJRNarqDUOrCOreBgEYeHkjeEh3lDMhytGCLqrIlVXrENb8GC394022048af3B"
     }
+    LEACHONG_PT = {
+        #rcvr-pt-1@gmail.com - PT Merchant account
+        "username": "AYBAxNLRTthLkDdk6IwQHTRr-Df4NAf1Nm5hBE-7yZWkVit7H8_tL8XJ2IXy9dh7NYm7wLErLHtBcywO",
+        "password": "EMb349cjiOikq0JjlhD3AQgab7fDjuyK8rPe3UXlNmb5ezLp35uxeJnSLrQgfhB1I49Iq75MZVrWxJsm"
+    }
 
-    FOR_FLASK = LEACHONG
+
+    FOR_FLASK = LEACHONG_US
 
     #my leachong@paypal.com
     #username='AUU0Jtg24SEu5dLLc9666tXHDn9jNa6jK3NzvciB6L2bdJdzsrtK0pVf8dBGXew356RgsuF96N9JwQGg' #client id
@@ -69,14 +75,14 @@ gateway = braintree.BraintreeGateway(
     braintree.Configuration(
         braintree.Environment.Sandbox,
         #bt cvenchong@gmail.com
-        merchant_id="9dxqqftdw4x6jfbr",
-        public_key="jvh5brdvvfkp5sc8",
-        private_key="3ede1f4c980113e88173b110124f3607"
+        # merchant_id="9dxqqftdw4x6jfbr",
+        # public_key="jvh5brdvvfkp5sc8",
+        # private_key="3ede1f4c980113e88173b110124f3607"
 
         #bt cvenchong+us@gmail.com
-        # merchant_id="d6dyn57dn7yysw2b",
-        # public_key="6285k8qst8wybnkd",
-        # private_key="073d630c7b39ebf0bf47d34e8c3562c7"
+        merchant_id="d6dyn57dn7yysw2b",
+        public_key="6285k8qst8wybnkd",
+        private_key="073d630c7b39ebf0bf47d34e8c3562c7"
 
         #chai heng account
         # merchant_id="mq3fyc7sdb4vgngm",
@@ -225,6 +231,17 @@ def serve_public(filename):
 def lipp():
     clientToken = getClientToken()
     return render_template("public/paypal/lipp.html", clientToken=clientToken)
+
+@app.route("/pp/venmo", methods=["GET"])
+def ppcpvenmo():
+    clientToken = getClientToken()
+    return render_template("venmo.html", clientToken=clientToken)
+
+
+@app.route("/pp/bnpl", methods=["GET"])
+def ppcpbnpl():
+    return render_template("pp_bnpl.html")
+
 
 @app.route("/hostedfield", methods=["GET"])
 def hostedField():
@@ -2216,7 +2233,7 @@ def createPPOrderV2():
     isPatch = data.get("isPatch", False)
     vaultToken = data.get("vaultedToken", None)    
     order_response = post_pp_create_order(clientToken, FN_SESSION_ID, vaultOnSuccess, vaultToken, isPatch)
-    put_stc(clientToken, FN_SESSION_ID)
+    #put_stc(clientToken, FN_SESSION_ID)
     return jsonify({
             "success": True,
             "order_response": order_response
@@ -2697,9 +2714,9 @@ def send_pp_payout(clientToken, currency, amount, payout_receiver_email_list):
 # Only run test function in the main process
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
 
-    decode_base64('eyJ0cmFuc2FjdGlvbl9pZCI6IjlBVDU0MDY1WFc5MjE5MzRSIiwicmVmdW5kdHlwZSI6IkZVTEwiLCJyZWZ1bmRfc291cmNlIjoiVU5SRVNUUklDVEVEIn0=')
+    decode_base64('eyJpbnRlbnQiOiJhdXRob3JpemUiLCJwYXllciI6eyJwYXltZW50X21ldGhvZCI6InBheXBhbCIsImZ1bmRpbmdfaW5zdHJ1bWVudHMiOlt7ImJpbGxpbmciOnsiYmlsbGluZ19hZ3JlZW1lbnRfaWQiOiJCLTVORTM5NDE1V0I0OTE0NDE3In19XX0sInRyYW5zYWN0aW9ucyI6W3siYW1vdW50Ijp7InRvdGFsIjoiMjcyLjQyIiwiY3VycmVuY3kiOiJVU0QiLCJkZXRhaWxzIjp7InN1YnRvdGFsIjoiMjMzLjAwIiwic2hpcHBpbmciOiIyNC4wMCIsImluc3VyYW5jZSI6IjE1LjQyIn19LCJpbnZvaWNlX251bWJlciI6IkZGUFBTQlgyNlM2WEFDRUZEMzNZIiwicGF5bWVudF9vcHRpb25zIjp7ImFsbG93ZWRfcGF5bWVudF9tZXRob2QiOiJVTlJFU1RSSUNURUQiLCJyZWN1cnJpbmdfZmxhZyI6ZmFsc2UsInNraXBfZm1mIjpmYWxzZX0sIml0ZW1fbGlzdCI6eyJpdGVtcyI6W3sibmFtZSI6IioqKioqKioqKioiLCJza3UiOiIwIiwicHJpY2UiOiIyMzMuMDAiLCJjdXJyZW5jeSI6IlVTRCIsInF1YW50aXR5IjoxfV0sInNoaXBwaW5nX2FkZHJlc3MiOnsicmVjaXBpZW50X25hbWUiOiIqKioqKioqKioqIiwibGluZTEiOiIqKioqKioqKioqIiwiY2l0eSI6IioqKioqKioqKioiLCJzdGF0ZSI6IkRDIiwicG9zdGFsX2NvZGUiOiIqKioqKioqKioqIiwiY291bnRyeV9jb2RlIjoiVVMiLCJkZWZhdWx0X2FkZHJlc3MiOmZhbHNlLCJwcmVmZXJyZWRfYWRkcmVzcyI6ZmFsc2UsInByaW1hcnlfYWRkcmVzcyI6ZmFsc2UsImRpc2FibGVfZm9yX3RyYW5zYWN0aW9uIjpmYWxzZX19LCJyZWxhdGVkX3Jlc291cmNlcyI6W119XX0=')
 
-    decode_base64('eyJ2ZXJzaW9uIjoiMjA0LjAiLCJtZXNzYWdlX3N1Yl9pZCI6IjFkZWYxOGIxLWE3ZTMtNGZkYS1iMTljLTk3Y2EyYzk0OTMxYSIsInRyYW5zYWN0aW9uX2lkIjoiNkgwMTExNjZHUDQyNDA2NEMiLCJpbnZvaWNlaWQiOiJGRlBQUldEMlROMkU2UTdaQldNOSIsInJlZnVuZHR5cGUiOiJGdWxsIiwibm90ZSI6IlJlZnVuZCAzMzU1NjExMSIsInJlZnVuZF9zb3VyY2UiOiJBbnkiLCJyZWZ1bmRfYWR2aWNlIjpmYWxzZX0=')
+    #decode_base64('eyJhZGRyZXNzIjp7ImFkZHJlc3NfbGluZV8xIjoidmlhIGRlbCB2aWxsb25lIDU1IiwiYWRtaW5fYXJlYV8yIjoiUGlzdG9pYSIsImFkbWluX2FyZWFfMSI6IlBUIiwicG9zdGFsX2NvZGUiOiI1MTEwMCIsImNvdW50cnlfY29kZSI6IklUIn19')
     
     # result = gateway.transaction.sale({
     #     "amount": "10.00",

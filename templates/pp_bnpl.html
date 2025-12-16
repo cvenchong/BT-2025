@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PayPal Button Rendering Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      max-width:920px;
+      margin:3rem auto;
+      padding:0 1rem;
+    }
+    code{background:#f6f8fa;padding:0 .25rem;border-radius:4px}
+    .box{
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      padding:16px;
+      margin:16px 0;
+      background:#fff;
+    }
+    .muted{color:#6b7280}
+    button{
+      font:inherit;
+      background:#0070ba;
+      color:#fff;
+      border:none;
+      padding:12px 24px;
+      border-radius:6px;
+      cursor:pointer;
+      font-size:16px;
+    }
+    button:hover{background:#005ea6}
+    button:disabled{background:#ccc;cursor:not-allowed}
+    
+    .radio-group{margin:20px 0}
+    .radio-option{
+      display:block;
+      padding:12px;
+      margin:8px 0;
+      border:2px solid #e5e7eb;
+      border-radius:8px;
+      cursor:pointer;
+      transition:all 0.2s;
+    }
+    .radio-option:hover{border-color:#0070ba;background:#f8f9fa}
+    .radio-option input[type="radio"]{margin-right:12px;cursor:pointer}
+    .radio-option.selected{border-color:#0070ba;background:#e6f4ff}
+    
+    .description{
+      font-size:14px;
+      color:#6b7280;
+      margin-left:28px;
+      margin-top:4px;
+    }
+    
+    #paypal-button-container{min-height:200px}
+    #paypal-marks-container{margin-bottom:16px}
+    
+    .loading{
+      text-align:center;
+      padding:20px;
+      color:#6b7280;
+    }
+  </style>
+</head>
+<body>
+  <h1>PayPal Button Rendering Demo</h1>
+  
+  <div class="box">
+    <h2>Select Button Rendering Mode</h2>
+    <div class="radio-group">
+      <label class="radio-option selected">
+        <input type="radio" name="renderMode" value="standard" checked>
+        <strong>Standard PayPal Smart Button</strong>
+        <div class="description">Display all available payment buttons at once (PayPal, Venmo, Pay Later, etc.)</div>
+      </label>
+      
+      <label class="radio-option">
+        <input type="radio" name="renderMode" value="limited">
+        <strong>Limited Button Set</strong>
+        <div class="description">Display only specific buttons (e.g., PayPal and Venmo only)</div>
+      </label>
+      
+      <label class="radio-option">
+        <input type="radio" name="renderMode" value="marks">
+        <strong>PayPal Marks with Radio Buttons</strong>
+        <div class="description">Use paypal.Marks() component for radio button selection</div>
+      </label>
+    </div>
+    
+    <button id="initButton" onclick="initializePayPal()">Initialize PayPal</button>
+  </div>
+  
+  <div class="box">
+    <h2>PayPal Button Container</h2>
+    <div id="status" class="muted">Select a mode and click Initialize to load PayPal buttons</div>
+    <div id="paypal-marks-container"></div>
+    <div id="paypal-button-container"></div>
+  </div>
+
+  <script>
+    // Global variables
+    let currentScript = null;
+    let paypalLoaded = false;
+    
+    // Client ID - replace with your actual client ID
+    //US - AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX
+    const CLIENT_ID = 'AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX';
+    const buyerCountry = 'US';
+    
+    // Handle radio selection visual feedback
+    document.querySelectorAll('.radio-option').forEach(option => {
+      option.addEventListener('click', function() {
+        document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
+        this.classList.add('selected');
+        this.querySelector('input[type="radio"]').checked = true;
+      });
+    });
+    
+    // Clean up existing PayPal scripts and components
+    function cleanupPayPal() {
+      // Remove existing button containers content
+      document.getElementById('paypal-button-container').innerHTML = '';
+      document.getElementById('paypal-marks-container').innerHTML = '';
+      
+      // Remove all PayPal scripts
+      document.querySelectorAll('script[src*="paypal.com"]').forEach(script => script.remove());
+      
+      // Remove PayPal from window object
+      if (window.paypal) {
+        delete window.paypal;
+      }
+      
+      // Remove any PayPal iframes
+      document.querySelectorAll('iframe[src*="paypal.com"]').forEach(iframe => iframe.remove());
+      
+      paypalLoaded = false;
+      currentScript = null;
+      
+      console.log('PayPal cleanup completed');
+    }
+    
+    // Load PayPal SDK dynamically
+    function loadPayPalSDK(components = 'buttons') {
+      return new Promise((resolve, reject) => {
+        //cleanupPayPal();
+        
+        // Add a small delay to ensure cleanup is complete
+        setTimeout(() => {
+          const script = document.createElement('script');
+          
+          script.src = `https://www.paypal.com/sdk/js?client-id=${CLIENT_ID}&components=${components}&enable-funding=venmo,paylater&currency=USD&buyer-country=${buyerCountry}`;
+          script.onload = () => {
+            console.log('PayPal SDK loaded');
+            currentScript = script;
+            paypalLoaded = true;
+            
+            // Add another small delay to ensure window.paypal is fully initialized
+            setTimeout(() => {
+              if (window.paypal && window.paypal.Buttons) {
+                console.log('PayPal Buttons confirmed available');
+                resolve();
+              } else {
+                reject(new Error('PayPal SDK loaded but Buttons not available'));
+              }
+            }, 500);
+          };
+          script.onerror = () => {
+            reject(new Error('Failed to load PayPal SDK'));
+          };
+          document.head.appendChild(script);
+        }, 500);
+      });
+    }
+    
+    // Create order function
+    function createOrder() {
+      return fetch('/create_pp_order_v2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: '10.00',
+          currency: 'USD'
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Order created:', data);
+        return data.id;
+      })
+      .catch(error => {
+        console.error('Error creating order:', error);
+        throw error;
+      });
+    }
+    
+    // Handle payment approval
+    function onApprove(data) {
+      console.log('Payment approved:', data);
+      document.getElementById('status').innerHTML = `
+        <div style="color:#10b981;font-weight:bold">✓ Payment Approved!</div>
+        <div class="muted">Order ID: ${data.orderID}</div>
+      `;
+    }
+    
+    // Handle payment cancellation
+    function onCancel(data) {
+      console.log('Payment cancelled:', data);
+      document.getElementById('status').innerHTML = `
+        <div style="color:#f59e0b;font-weight:bold">Payment Cancelled</div>
+      `;
+    }
+    
+    // Handle payment error
+    function onError(err) {
+      console.error('Payment error:', err);
+      document.getElementById('status').innerHTML = `
+        <div style="color:#ef4444;font-weight:bold">Payment Error</div>
+        <div class="muted">${err.message || 'An error occurred'}</div>
+      `;
+    }
+    
+    // Mode 1: Standard PayPal Smart Button (all available buttons)
+    async function renderStandardButtons() {
+      document.getElementById('status').innerHTML = '<div class="loading">Loading standard buttons...</div>';
+      
+      await loadPayPalSDK('buttons');
+      
+      window.paypal.Buttons({
+        createOrder: createOrder,
+        onApprove: onApprove,
+        onCancel: onCancel,
+        onError: onError,
+        style: {
+          layout: 'vertical',
+          color: 'gold',
+          shape: 'rect',
+          label: 'paypal'
+        }
+      }).render('#paypal-button-container');
+      
+      document.getElementById('status').innerHTML = '<div class="muted">Standard buttons rendered - showing all available payment methods</div>';
+    }
+    
+    // Mode 2: Limited button set (only specific buttons)
+    async function renderLimitedButtons() {
+      document.getElementById('status').innerHTML = '<div class="loading">Loading limited button set...</div>';
+      
+      await loadPayPalSDK('buttons');
+      
+      // Render PayPal button
+      window.paypal.Buttons({
+        fundingSource: window.paypal.FUNDING.PAYPAL,
+        createOrder: createOrder,
+        onApprove: onApprove,
+        onCancel: onCancel,
+        onError: onError,
+        style: {
+          layout: 'vertical',
+          color: 'gold',
+          shape: 'rect',
+          label: 'paypal'
+        }
+      }).render('#paypal-button-container');
+      
+      // Render Venmo button (if eligible)
+      if (window.paypal.isFundingEligible(window.paypal.FUNDING.VENMO)) {
+        window.paypal.Buttons({
+          fundingSource: window.paypal.FUNDING.VENMO,
+          createOrder: createOrder,
+          onApprove: onApprove,
+          onCancel: onCancel,
+          onError: onError
+        }).render('#paypal-button-container');
+      }
+      
+      document.getElementById('status').innerHTML = '<div class="muted">Limited buttons rendered - showing PayPal and Venmo only</div>';
+    }
+    
+    // Mode 3: PayPal Marks with radio buttons
+    async function renderMarksWithRadio() {
+      document.getElementById('status').innerHTML = '<div class="loading">Loading marks with radio buttons...</div>';
+      
+      await loadPayPalSDK('buttons,marks');
+      
+      let selectedFundingSource = window.paypal.FUNDING.PAYPAL;
+      
+      // Render marks for different funding sources
+      const fundingSources = [
+        window.paypal.FUNDING.PAYPAL,
+        window.paypal.FUNDING.VENMO,
+        window.paypal.FUNDING.PAYLATER
+      ];
+      
+      const marksContainer = document.getElementById('paypal-marks-container');
+      marksContainer.innerHTML = '<div style="margin-bottom:12px;font-weight:bold">Select Payment Method:</div>';
+      
+      for (const fundingSource of fundingSources) {
+        if (window.paypal.isFundingEligible(fundingSource)) {
+          const markContainer = document.createElement('div');
+          markContainer.style.cssText = 'display:flex;align-items:center;margin:8px 0;padding:8px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer';
+          markContainer.id = `mark-${fundingSource}`;
+          
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = 'paymentMethod';
+          radio.value = fundingSource;
+          radio.style.marginRight = '12px';
+          radio.checked = fundingSource === window.paypal.FUNDING.PAYPAL;
+          
+          const markElement = document.createElement('div');
+          markElement.style.flex = '1';
+          
+          markContainer.appendChild(radio);
+          markContainer.appendChild(markElement);
+          marksContainer.appendChild(markContainer);
+          
+          // Render the mark
+          window.paypal.Marks({
+            fundingSource: fundingSource
+          }).render(markElement);
+          
+          // Handle selection
+          markContainer.addEventListener('click', function() {
+            selectedFundingSource = fundingSource;
+            radio.checked = true;
+            
+            // Update visual feedback
+            document.querySelectorAll('[id^="mark-"]').forEach(mark => {
+              mark.style.borderColor = '#e5e7eb';
+              mark.style.background = 'transparent';
+            });
+            markContainer.style.borderColor = '#0070ba';
+            markContainer.style.background = '#e6f4ff';
+            
+            // Re-render button for selected funding source
+            renderButtonForFundingSource(selectedFundingSource);
+          });
+          
+          // Set initial selection style
+          if (fundingSource === window.paypal.FUNDING.PAYPAL) {
+            markContainer.style.borderColor = '#0070ba';
+            markContainer.style.background = '#e6f4ff';
+          }
+        }
+      }
+      
+      // Render initial button for PayPal
+      renderButtonForFundingSource(selectedFundingSource);
+      
+      document.getElementById('status').innerHTML = '<div class="muted">Marks rendered - select a payment method above</div>';
+    }
+    
+    // Helper function to render button for specific funding source
+    function renderButtonForFundingSource(fundingSource) {
+      document.getElementById('paypal-button-container').innerHTML = '';
+      
+      window.paypal.Buttons({
+        fundingSource: fundingSource,
+        createOrder: createOrder,
+        onApprove: onApprove,
+        onCancel: onCancel,
+        onError: onError,
+        style: {
+          layout: 'vertical',
+          label: 'pay'
+        }
+      }).render('#paypal-button-container');
+    }
+    
+    // Main initialization function
+    async function initializePayPal() {
+      const selectedMode = document.querySelector('input[name="renderMode"]:checked').value;
+      const initButton = document.getElementById('initButton');
+      
+      initButton.disabled = true;
+      initButton.textContent = 'Initializing...';
+      
+      try {
+        switch(selectedMode) {
+          case 'standard':
+            await renderStandardButtons();
+            break;
+          case 'limited':
+            await renderLimitedButtons();
+            break;
+          case 'marks':
+            await renderMarksWithRadio();
+            break;
+        }
+      } catch(error) {
+        console.error('Error initializing PayPal:', error);
+        document.getElementById('status').innerHTML = `
+          <div style="color:#ef4444;font-weight:bold">Initialization Error</div>
+          <div class="muted">${error.message}</div>
+        `;
+      } finally {
+        initButton.disabled = false;
+        initButton.textContent = 'Initialize PayPal';
+      }
+    }
+  </script>
+</body>
+</html>

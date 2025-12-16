@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>FraudNet Demo</title>
+  <title>Venmo PPCP Demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
@@ -14,36 +14,44 @@
   </style>
 </head>
 <body>
-  <h1>PayPal FraudNet: Basic Integration</h1>
+  <h1>PayPal Venmo</h1>
+<!-- Set up a container element for the button -->
+<div id="paypal-button-container"></div>
 
-  <div class="box">
-    <p><strong>Status:</strong> This page generates a unique <code>f</code> value and loads FraudNet.</p>
-    <p><strong>Next step:</strong> Send that <code>f</code> to your server and include it as the
-      <code>PAYPAL-CLIENT-METADATA-ID</code> header when you call PayPal (e.g., Create Order).</p>
-  </div>
+<!-- Include the PayPal JavaScript SDK. Replace `YOUR_CLIENT_ID` with your client ID.-->
+<!-- Note that `enable-funding=venmo` is added as a query parameter -->
+<script src="https://www.paypal.com/sdk/js?client-id=AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX&buyer-country=US&currency=USD&components=buttons&enable-funding=venmo"></script>
 
-  <div class="box">
-    <p><strong>Current FraudNet Session Identifier (<code>f</code>):</strong>
-      <span id="fn-session-id" style="font-family:ui-monospace,Menlo,Consolas,monospace"></span>
-    </p>
-  </div>
+<script>
+  // Render the Venmo button into #paypal-button-container
+  paypal.Buttons({
+    fundingSource: paypal.FUNDING.VENMO,
+    style: {
+      layout: 'vertical',
+      color:  'blue',
+      shape:  'rect',
+      label:  'venmo'
+    },
+    createOrder: function(data, actions) {
+      return actions.order.create({
+        purchase_units: [{
+          amount: {
+            currency_code: 'USD',
+            value: '10.00' // Can reference a variable or function
+          }
+        }]
+      });
+    },
+    onApprove: function(data, actions) {
+      return actions.order.capture().then(function(details) {
+        alert('Transaction completed by ' + details.payer.name.given_name + '!');
+      });
+    }
 
-  <hr class="box" />
+  }).render('#paypal-button-container')
+</script>
 
-  <h2>Sending the FraudNet ID to your backend</h2>
-  <p class="muted">Example client call (done automatically below with top-level <code>await</code>):</p>
-  <pre class="box"><code>await fetch("/create_pp_order_v2", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ f: &lt;FraudNet f&gt;, s: &lt;source&gt;, sandbox: true })
-});</code></pre>
 
-  <div class="box" id="redirectButtonContainer"></div>
-
-  <div class="box">
-    <strong>Create Order Result</strong>
-    <pre id="result" class="muted" style="white-space:pre-wrap;word-break:break-word;margin-top:.5rem;"></pre>
-  </div>
 
   <!-- FraudNet params block (will be overwritten by the module script below) -->
   <script type="application/json" fncls="fnparams-dede7cc5-15fd-4c75-a9f4-36c430ee3a99">
