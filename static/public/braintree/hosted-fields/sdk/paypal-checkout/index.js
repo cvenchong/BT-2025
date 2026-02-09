@@ -1,4 +1,10 @@
-const merchantAccountId = "stevenchong";
+const merchantAccountId = "stevenchongEUR";
+const currency = "EUR";
+const transactionAmount = "10.00";
+const loadPayPalSDK_buyerCountry = "GB";
+const loadPayPalSDK_intent = "authorize";
+const createPayment_flow = "checkout";
+const createPayment_intent = "authorize";
 const BASE_URL = "http://127.0.0.1:5000";
 
 function settleTransaction() {
@@ -219,8 +225,8 @@ function main() {
           // eslint-disable-next-line no-undef
           braintree.paypalCheckout
             .create({
-              client: client,
-              merchantAccountId: "test",
+              client: client
+              //merchantAccountId: "test",
             })
             .then((paypalCheckout) => {
               if ((paypalCheckout ?? null) === null) {
@@ -246,9 +252,9 @@ function main() {
 
               paypalCheckout
                 .loadPayPalSDK({
-                  "buyer-country": "GB",
-                  currency: "GBP",
-                  intent: "authorize",
+                  "buyer-country": loadPayPalSDK_buyerCountry,
+                  currency: currency,
+                  intent: loadPayPalSDK_intent,
                   locale: "en_GB",
                 })
                 .then(() => {
@@ -284,10 +290,10 @@ function main() {
                         console.log("Attempting to create order");
                         return paypalCheckout
                           .createPayment({
-                            flow: "checkout",
-                            intent: "authorize",
-                            amount: "10.00",
-                            currency: "GBP",
+                            flow: createPayment_flow,
+                            intent: createPayment_intent,
+                            amount: transactionAmount,
+                            currency: currency,
                           })
                           .then((orderID) => {
                             if ((orderID ?? null) === null) {
@@ -356,63 +362,64 @@ function main() {
                             );
 
                             console.log("Creating transaction");
-                            return fetch(
-                              `${BASE_URL}/braintree/sdk/transaction/new`,
-                              {
-                                method: "POST",
-                                headers: {
-                                  "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify({
-                                  amount: "10.00",
-                                  paymentMethodNonce: nonce,
-                                  storeInVaultOnSuccess: false,
-                                  submitForSettlement: false,
-                                }),
-                              }
-                            );
+                            return true
+                            // fetch(
+                            //   `${BASE_URL}/braintree/sdk/transaction/new`,
+                            //   {
+                            //     method: "POST",
+                            //     headers: {
+                            //       "Content-Type": "application/json",
+                            //     },
+                            //     body: JSON.stringify({
+                            //       amount: transactionAmount,
+                            //       paymentMethodNonce: nonce,
+                            //       storeInVaultOnSuccess: false,
+                            //       submitForSettlement: false,
+                            //     }),
+                            //   }
+                            // );
                           })
-                          .then(async (response) => {
-                            if (response.status === 201) {
-                              return response.json();
-                            } else {
-                              throw new Error((await response.json())?.message);
-                            }
-                          })
-                          .then((data) => {
-                            if ((data?.transactionId ?? null) === null) {
-                              throw new Error(
-                                "No transaction ID with associated successful transaction"
-                              );
-                            }
+                          // .then(async (response) => {
+                          //   if (response.status === 201) {
+                          //     return response.json();
+                          //   } else {
+                          //     throw new Error((await response.json())?.message);
+                          //   }
+                          // })
+                          // .then((data) => {
+                          //   if ((data?.transactionId ?? null) === null) {
+                          //     throw new Error(
+                          //       "No transaction ID with associated successful transaction"
+                          //     );
+                          //   }
 
-                            return data.transactionId;
-                          })
-                          .then((transactionId) => {
-                            console.log(
-                              `Order with ID ${data.orderID} and transaction with ID ${transactionId} successfully created`
-                            );
-                            document.getElementById(
-                              "feedback"
-                            ).innerHTML = `Order with ID ${data.orderID} and transaction with ID ${transactionId} successfully created`;
-                            document.getElementById("error").innerHTML = "";
+                          //   return data.transactionId;
+                          // })
+                          // .then((transactionId) => {
+                          //   console.log(
+                          //     `Order with ID ${data.orderID} and transaction with ID ${transactionId} successfully created`
+                          //   );
+                          //   document.getElementById(
+                          //     "feedback"
+                          //   ).innerHTML = `Order with ID ${data.orderID} and transaction with ID ${transactionId} successfully created`;
+                          //   document.getElementById("error").innerHTML = "";
 
-                            let settleButton =
-                              document.getElementById("settle-button");
-                            settleButton.hidden = false;
-                            settleButton.setAttribute(
-                              "data-transaction-id",
-                              transactionId
-                            );
+                          //   let settleButton =
+                          //     document.getElementById("settle-button");
+                          //   settleButton.hidden = false;
+                          //   settleButton.setAttribute(
+                          //     "data-transaction-id",
+                          //     transactionId
+                          //   );
 
-                            let voidButton =
-                              document.getElementById("void-button");
-                            voidButton.hidden = false;
-                            voidButton.setAttribute(
-                              "data-transaction-id",
-                              transactionId
-                            );
-                          })
+                          //   let voidButton =
+                          //     document.getElementById("void-button");
+                          //   voidButton.hidden = false;
+                          //   voidButton.setAttribute(
+                          //     "data-transaction-id",
+                          //     transactionId
+                          //   );
+                          // })
                           .catch(() => {
                             document.getElementById("feedback").innerHTML =
                               "Error capturing order";

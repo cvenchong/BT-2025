@@ -11,230 +11,110 @@
     .box{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:16px 0}
     .muted{color:#6b7280}
     button{font:inherit}
+    .debug { 
+            background: #f0f0f0; 
+            padding: 10px; 
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            max-height: 200px;
+            overflow-y: auto;
+        }
   </style>
 </head>
 <body>
-  <h1>PayPal Venmo</h1>
-<!-- Set up a container element for the button -->
-<div id="paypal-button-container"></div>
+  <div id = "paypal-button" title = "Pay with PayPal" >
+    <p> Here is the div for the PayPal button </p>
+  </div>
+  <div id = "venmo-button" title = "Pay with Venmo" >
+    <p> Here is the div for the Venmo button </p>
+  </div>
+
+      <div class="debug">
+        <strong>Debug Log:</strong>
+        <div id="debugLog"></div>
+    </div>
+
+    <script>
+        // Override console.log to show on page
+        const debugLog = document.getElementById('debugLog');
+        const originalLog = console.log;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const logEntry = document.createElement('div');
+            logEntry.textContent = args.join(' ');
+            debugLog.appendChild(logEntry);
+        };
+        
+        // Test logs
+        console.log('Page loaded');
+        console.log('User Agent:', navigator.userAgent);
+        console.log('Window width:', window.innerWidth);
+    </script>
 
 <!-- Include the PayPal JavaScript SDK. Replace `YOUR_CLIENT_ID` with your client ID.-->
 <!-- Note that `enable-funding=venmo` is added as a query parameter -->
-<script src="https://www.paypal.com/sdk/js?client-id=AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX&buyer-country=US&currency=USD&components=buttons&enable-funding=venmo"></script>
+<script src="https://www.paypal.com/sdk/js?client-id=AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX&buyer-country=US&currency=USD&components=buttons,funding-eligibility&enable-funding=venmo,paypal"></script>
 
 <script>
-  // Render the Venmo button into #paypal-button-container
-  paypal.Buttons({
-    fundingSource: paypal.FUNDING.VENMO,
-    style: {
-      layout: 'vertical',
-      color:  'blue',
-      shape:  'rect',
-      label:  'venmo'
-    },
-    createOrder: function(data, actions) {
-      return actions.order.create({
-        purchase_units: [{
-          amount: {
-            currency_code: 'USD',
-            value: '10.00' // Can reference a variable or function
-          }
-        }]
-      });
-    },
-    onApprove: function(data, actions) {
-      return actions.order.capture().then(function(details) {
-        alert('Transaction completed by ' + details.payer.name.given_name + '!');
-      });
+  createButton(paypal.FUNDING.VENMO);
+  
+  createButton(paypal.FUNDING.PAYPAL);
+  
+  function createButton(fundingSource){
+    var config = {
+        fundingSource: fundingSource,
+        createOrder: function(data, actions) {
+            return actions.order.create({
+                purchase_units: [{
+                    "amount": {
+                        "currency_code": "USD",
+                        "value": 1
+                    }
+                }]
+            });
+        },
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+                alert('Transaction completed by ' + details.payer.name.given_name + '!');
+            });
+        }
+    };
+    var button = paypal.Buttons(config);
+    console.log(fundingSource + ' button is eligible? button.isEligible()=' + button.isEligible());
+    if (button.isEligible()) {
+        var buttonId = fundingSource.toLowerCase() + '-button';
+        button.render('#' + buttonId);
     }
+  }
 
-  }).render('#paypal-button-container')
+  // Render the Venmo button into #paypal-button-container
+  // paypal.Buttons({
+  //   fundingSource: paypal.FUNDING.VENMO,
+  //   style: {
+  //     layout: 'vertical',
+  //     color:  'blue',
+  //     shape:  'rect'
+  //   },
+  //   createOrder: function(data, actions) {
+  //     return actions.order.create({
+  //       purchase_units: [{
+  //         amount: {
+  //           currency_code: 'USD',
+  //           value: '10.00' // Can reference a variable or function
+  //         }
+  //       }]
+  //     });
+  //   },
+  //   onApprove: function(data, actions) {
+  //     return actions.order.capture().then(function(details) {
+  //       alert('Transaction completed by ' + details.payer.name.given_name + '!');
+  //     });
+  //   }
+
+  // }).render('#paypal-button-container')
 </script>
 
 
-
-  <!-- FraudNet params block (will be overwritten by the module script below) -->
-  <script type="application/json" fncls="fnparams-dede7cc5-15fd-4c75-a9f4-36c430ee3a99">
-    { "f": "", "s": "", "sandbox": false }
-  </script>
-
-  <!-- All logic consolidated into one ES module. Top-level await is allowed here. -->
-  <script type="module">
-    /************** Config **************/
-    const CONFIG = {
-      apis: {
-        POST_CREATE_ORDER_V2: "/create_pp_order_v2"
-      },
-      SOURCE_ID: "StevenMer_MDBXQWUTS7Y9E_cxo-pages" // <merchantId>_<pageId> format
-    };
-
-    /************** Utilities **************/
-    function generateFnSessionId() {
-      const bytes = new Uint8Array(16);
-      (window.crypto || window.msCrypto).getRandomValues(bytes);
-      return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join(''); // 32 hex chars
-    }
-
-    function removeRedirectButton() {
-      const existing = document.getElementById("redirectButton");
-      if (existing) existing.remove();
-    }
-
-    function addRedirectButton(label = "Fullpage Redirect To PayPal", onClick = () => {}) {
-      const container = document.getElementById("redirectButtonContainer");
-      removeRedirectButton();
-
-      const btn = document.createElement("button");
-      btn.id = "redirectButton";
-      btn.textContent = label;
-      btn.style.padding = "0.5rem 1rem";
-      btn.style.border = "1px solid #e5e7eb";
-      btn.style.borderRadius = "8px";
-      btn.style.cursor = "pointer";
-
-      btn.addEventListener("click", onClick);
-      container.appendChild(btn);
-    }
-
-    function updateFnParamsJSON(params) {
-      const tag = document.querySelector('script[type="application/json"][fncls="fnparams-dede7cc5-15fd-4c75-a9f4-36c430ee3a99"]');
-      if (tag) tag.text = JSON.stringify(params);
-    }
-
-    // Helper function to wait for FraudNet script to load
-    function waitForFraudNetScript() {
-      return new Promise((resolve) => {
-        // Check if script already exists
-        const existingScript = document.querySelector('script[src="https://c.paypal.com/da/r/fb.js"]');
-        if (existingScript) {
-          if (existingScript.complete) {
-            resolve();
-          } else {
-            existingScript.addEventListener('load', resolve);
-          }
-        } else {
-          // If script doesn't exist yet, wait for it to be added and loaded
-          const observer = new MutationObserver((mutations, obs) => {
-            const script = document.querySelector('script[src="https://c.paypal.com/da/r/fb.js"]');
-            if (script) {
-              script.addEventListener('load', () => {
-                obs.disconnect();
-                resolve();
-              });
-            }
-          });
-          observer.observe(document.documentElement, { childList: true, subtree: true });
-        }
-      });
-    }
-
-    async function callBackend(url, requestData, { timeoutMs = 30000 } = {}) {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-      try {
-        //timestamped logs
-        console.log(new Date().toISOString(), " - Calling backend... started");
-        console.log("Calling Backend url:", url);
-        console.log("requestData:", requestData);
-
-        const resp = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestData),
-          signal: ctrl.signal
-        });
-
-        if (!resp.ok) {
-          const text = await resp.text().catch(() => "");
-          throw new Error(`Failed to call backend: \${resp.status} \${resp.statusText} \${text}`);
-        }
-        
-        console.log(new Date().toISOString(), " - Calling backend... finished");
-        return resp.json();
-      } finally {
-        clearTimeout(timer);
-      }
-    }
-
-    /************** Main (top-level await) **************/
-    const isPatch = '{{isPatch}}';
-    console.log("isPatch:", isPatch);
-
-
-    // 1) Generate FraudNet identifiers
-    let FN_SESSION_ID = generateFnSessionId();
-    const SOURCE_ID = CONFIG.SOURCE_ID;
-
-    // 2) Expose to window (handy for debugging & your server-side logging)
-//    FN_SESSION_ID = '919087cd55ff1b0cdc1d3808ed796135'; // for testing only
-
-
-
-    window.__FRAUDNET__ = { f: FN_SESSION_ID, s: SOURCE_ID, sandbox: true };
-
-    // 3) Show f on page
-    document.getElementById("fn-session-id").textContent = FN_SESSION_ID;
-
-    // 4) Write params for FraudNet before fb.js loads
-    updateFnParamsJSON(window.__FRAUDNET__);
-
-    // 5) Add no js support
-    var noscript = document.createElement("noscript");
-    var img = document.createElement("img");
-    img.src = `https://c.paypal.com/v1/r/d/b/ns?f=${FN_SESSION_ID}&s=${SOURCE_ID}&js=0&r=1`;
-    noscript.appendChild(img);
-    document.body.appendChild(noscript);
-
-    // 6) Load FraudNet script dynamically
-    const fraudnetScript = document.createElement('script');
-    fraudnetScript.src = 'https://c.paypal.com/da/r/fb.js';
-    fraudnetScript.async = true;
-    document.body.appendChild(fraudnetScript);
-
-    // 7) Wait for FraudNet script to load before calling backend
-    console.log("Waiting for FraudNet script to load...");
-    await waitForFraudNetScript();
-    console.log("FraudNet script loaded!");
-
-    // 8) Call your backend to create an order (using top-level await)
-    const requestData = { f: FN_SESSION_ID, s: SOURCE_ID, sandbox: true, isPatch: isPatch };
-
-
-    let createOrderResponse = null;
-
-    try {
-      //add a blocking delay to simulate real-world network conditions with timestamped logs
-      console.log("Simulating network delay... 3s - start - "+ new Date().toISOString());
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      console.log("Simulating network delay... 3s - end - "+ new Date().toISOString());
-      createOrderResponse = await callBackend(CONFIG.apis.POST_CREATE_ORDER_V2, requestData);
-      console.log("create order v2 response:", createOrderResponse);
-      document.getElementById("result").textContent =
-        JSON.stringify(createOrderResponse, null, 2);
-    } catch (err) {
-      console.error("create order v2 failed:", err);
-      document.getElementById("result").textContent = String(err);
-    }
-
-    // 6) Add a redirect button; if we got an approve link, wire it to that
-    let approveHref = null;
-    try {
-      const links = createOrderResponse?.order_response?.links || [];
-      console.log("links: ", links);
-      const approve = links.find(l => l.rel === "payer-action");
-      console.log("approval: ", approve);
-      approveHref = approve?.href + '&client-metadata-id=' + FN_SESSION_ID || null;
-    } catch (_) { /* noop */ }
-
-    addRedirectButton("Fullpage Redirect To PayPal",
-      () => {
-        if (approveHref) {
-          window.location.href = approveHref;
-        } else {
-          alert("No approval link from backend yet.");
-        }
-      }
-    );
-  </script>
 </body>
 </html>

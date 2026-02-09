@@ -1,73 +1,112 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <title>PayPal Button Rendering Demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
-    body{
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-      max-width:920px;
-      margin:3rem auto;
-      padding:0 1rem;
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      max-width: 920px;
+      margin: 3rem auto;
+      padding: 0 1rem;
     }
-    code{background:#f6f8fa;padding:0 .25rem;border-radius:4px}
-    .box{
-      border:1px solid #e5e7eb;
-      border-radius:12px;
-      padding:16px;
-      margin:16px 0;
-      background:#fff;
+
+    code {
+      background: #f6f8fa;
+      padding: 0 .25rem;
+      border-radius: 4px
     }
-    .muted{color:#6b7280}
-    button{
-      font:inherit;
-      background:#0070ba;
-      color:#fff;
-      border:none;
-      padding:12px 24px;
-      border-radius:6px;
-      cursor:pointer;
-      font-size:16px;
+
+    .box {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px 0;
+      background: #fff;
     }
-    button:hover{background:#005ea6}
-    button:disabled{background:#ccc;cursor:not-allowed}
-    
-    .radio-group{margin:20px 0}
-    .radio-option{
-      display:block;
-      padding:12px;
-      margin:8px 0;
-      border:2px solid #e5e7eb;
-      border-radius:8px;
-      cursor:pointer;
-      transition:all 0.2s;
+
+    .muted {
+      color: #6b7280
     }
-    .radio-option:hover{border-color:#0070ba;background:#f8f9fa}
-    .radio-option input[type="radio"]{margin-right:12px;cursor:pointer}
-    .radio-option.selected{border-color:#0070ba;background:#e6f4ff}
-    
-    .description{
-      font-size:14px;
-      color:#6b7280;
-      margin-left:28px;
-      margin-top:4px;
+
+    button {
+      font: inherit;
+      background: #0070ba;
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
     }
-    
-    #paypal-button-container{min-height:200px}
-    #paypal-marks-container{margin-bottom:16px}
-    
-    .loading{
-      text-align:center;
-      padding:20px;
-      color:#6b7280;
+
+    button:hover {
+      background: #005ea6
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed
+    }
+
+    .radio-group {
+      margin: 20px 0
+    }
+
+    .radio-option {
+      display: block;
+      padding: 12px;
+      margin: 8px 0;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .radio-option:hover {
+      border-color: #0070ba;
+      background: #f8f9fa
+    }
+
+    .radio-option input[type="radio"] {
+      margin-right: 12px;
+      cursor: pointer
+    }
+
+    .radio-option.selected {
+      border-color: #0070ba;
+      background: #e6f4ff
+    }
+
+    .description {
+      font-size: 14px;
+      color: #6b7280;
+      margin-left: 28px;
+      margin-top: 4px;
+    }
+
+    #paypal-button-container {
+      min-height: 200px
+    }
+
+    #paypal-marks-container {
+      margin-bottom: 16px
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #6b7280;
     }
   </style>
 </head>
+
 <body>
   <h1>PayPal Button Rendering Demo</h1>
-  
+
   <div class="box">
     <h2>Select Button Rendering Mode</h2>
     <div class="radio-group">
@@ -76,23 +115,23 @@
         <strong>Standard PayPal Smart Button</strong>
         <div class="description">Display all available payment buttons at once (PayPal, Venmo, Pay Later, etc.)</div>
       </label>
-      
+
       <label class="radio-option">
         <input type="radio" name="renderMode" value="limited">
         <strong>Limited Button Set</strong>
-        <div class="description">Display only specific buttons (e.g., PayPal and Venmo only)</div>
+        <div class="description">Display only specific buttons (e.g., PayPal, PayLater and Venmo only)</div>
       </label>
-      
+
       <label class="radio-option">
         <input type="radio" name="renderMode" value="marks">
         <strong>PayPal Marks with Radio Buttons</strong>
         <div class="description">Use paypal.Marks() component for radio button selection</div>
       </label>
     </div>
-    
+
     <button id="initButton" onclick="initializePayPal()">Initialize PayPal</button>
   </div>
-  
+
   <div class="box">
     <h2>PayPal Button Container</h2>
     <div id="status" class="muted">Select a mode and click Initialize to load PayPal buttons</div>
@@ -104,59 +143,164 @@
     // Global variables
     let currentScript = null;
     let paypalLoaded = false;
-    
+
     // Client ID - replace with your actual client ID
-    //US - AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX
-    const CLIENT_ID = 'AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX';
+    //PT //enabled financing presentment
+    const CLIENT_ID_PT = 'AYBAxNLRTthLkDdk6IwQHTRr-Df4NAf1Nm5hBE-7yZWkVit7H8_tL8XJ2IXy9dh7NYm7wLErLHtBcywO';
+    const CLIENT_SECRET_PT = 'EMb349cjiOikq0JjlhD3AQgab7fDjuyK8rPe3UXlNmb5ezLp35uxeJnSLrQgfhB1I49Iq75MZVrWxJsm';
+    const CURRENCY_PT = 'EUR';
+
+    //US rcvr-us-ppcp-1@gmail.com //enabled financing presentment
+    const CLIENT_ID_US = 'AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX';
+    const CLIENT_SECRET_US = 'EIbrrlOv2mI9okw9-YQJRNarqDUOrCOreBgEYeHkjeEh3lDMhytGCLqrIlVXrENb8GC394022048af3B';
+    const CURRENCY_US = 'USD';
+
+
+    //US rcvr-us-ppcp-2@gmail.com //enabled financing presentment
+    const CLIENT_ID_US_2 = 'AUTd2Jkhd4MeoPvg63jczxceBoHr3iUvIMKwL-pWn5MgZVgQ9SxEKz0hBop-N71IaTw5HcpI807GEB-h';
+    const CLIENT_SECRET_US_2 = 'EMk-FZyWt0BXQt_96ftPJbZ23wvorDgNPeA0ys8ancIwnjKfD1exPg95fLMYy5vyC2Ihh8wRIE0tCR-O';
+    const CURRENCY_US_2 = 'USD';
+
+    //GB rcvr-uk-3 //enabled financing presentment
+    const CLIENT_ID_GB = 'AQUMX8bz7I1yMZi9HNwuNeTW6Xz-nnMnrIE0xjLC_W-6RE41Ne3C-8mrTHfvHG9nuIeySUHGFee39A8x';
+    const CLIENT_SECRET_GB = 'EJfo3Vix5fjPwiZzGujSm7hjbDQVbRSDvD40LsKeoJjz2cYQh3J2KHkxp5GbTl5-xWICWLm_Vmy0ZXc8';
+    const CURRENCY_GB = 'GBP';
+
+    const CLIENT_ID = CLIENT_ID_US_2;
+    const CLIENT_SECRET = CLIENT_SECRET_US_2;
+    const currency = CURRENCY_US_2;
     const buyerCountry = 'US';
-    
+
+
+    const amount = '100.00';
+    const jsIntent = 'authorize' //capture or authorize
+    const createOrderIntent = 'AUTHORIZE'
+
+    function getCreateOrderRequestPayload() {
+      var payload = {
+        intent: "AUTHORIZE",
+        purchase_units: [
+          {
+            invoice_id: Date.now().toString(),
+            description: "abc pte ltd billing agreement",
+            amount: {
+              currency_code: currency,
+              value: amount
+            }
+            ,
+            shipping: {
+              address: {
+                address_line_1: "line 1 add",
+                address_line_2: "line 2 add",
+                admin_area_1: "IL",
+                admin_area_2: "Chicago",
+                postal_code: "60642",
+                country_code: "US"
+              },
+              name: {
+                full_name: "teststeven"
+              }
+            }
+          }
+        ],
+        payment_source: {
+          paypal: {
+            email_address: "customer@example.com",
+            experience_context: {
+              return_url: "https://example.com/returnUrl",
+              cancel_url: "https://example.com/cancelUrl",
+              shipping_preference: "SET_PROVIDED_ADDRESS",
+              user_action: "PAY_NOW",
+              brand_name: "Steven Brand"
+            }
+            // ,
+            // attributes: {
+            //   vault: {
+            //     store_in_vault: "ON_SUCCESS",
+            //     usage_type: "MERCHANT"
+            //   }
+            // }
+
+            , address:{
+              address_line_1: "line 1 add",
+              address_line_2: "line 2 add",
+              admin_area_1: "IL",
+              admin_area_2: "Chicago",
+              postal_code: "60642",
+              country_code: "US"
+            }
+            , name: {
+              given_name: "testGivenName",
+              surname: "testSurname"
+            }
+            , phone:{
+              //phone_type: "MOBILE",
+              phone_number: {
+                national_number: "14158675309"
+              }
+            }
+          }
+        }
+      };
+
+      //append key value pair - client id and client secret
+      payload = Object.assign(payload, {
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET
+      });
+
+      console.log('create order payload:', payload);
+      return payload;
+    }
+
+
     // Handle radio selection visual feedback
     document.querySelectorAll('.radio-option').forEach(option => {
-      option.addEventListener('click', function() {
+      option.addEventListener('click', function () {
         document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
         this.classList.add('selected');
         this.querySelector('input[type="radio"]').checked = true;
       });
     });
-    
+
     // Clean up existing PayPal scripts and components
     function cleanupPayPal() {
       // Remove existing button containers content
       document.getElementById('paypal-button-container').innerHTML = '';
       document.getElementById('paypal-marks-container').innerHTML = '';
-      
+
       // Remove all PayPal scripts
       document.querySelectorAll('script[src*="paypal.com"]').forEach(script => script.remove());
-      
+
       // Remove PayPal from window object
       if (window.paypal) {
         delete window.paypal;
       }
-      
+
       // Remove any PayPal iframes
       document.querySelectorAll('iframe[src*="paypal.com"]').forEach(iframe => iframe.remove());
-      
+
       paypalLoaded = false;
       currentScript = null;
-      
+
       console.log('PayPal cleanup completed');
     }
-    
+
     // Load PayPal SDK dynamically
-    function loadPayPalSDK(components = 'buttons') {
+    function loadPayPalSDK(components = 'buttons,funding-eligibility') {
       return new Promise((resolve, reject) => {
         //cleanupPayPal();
-        
+
         // Add a small delay to ensure cleanup is complete
         setTimeout(() => {
           const script = document.createElement('script');
-          
-          script.src = `https://www.paypal.com/sdk/js?client-id=${CLIENT_ID}&components=${components}&enable-funding=venmo,paylater&currency=USD&buyer-country=${buyerCountry}`;
+
+          script.src = `https://www.paypal.com/sdk/js?client-id=${CLIENT_ID}&components=${components}&enable-funding=venmo,paylater&currency=${currency}&buyer-country=${buyerCountry}&intent=${jsIntent}&debug=true`;
           script.onload = () => {
             console.log('PayPal SDK loaded');
             currentScript = script;
             paypalLoaded = true;
-            
+
             // Add another small delay to ensure window.paypal is fully initialized
             setTimeout(() => {
               if (window.paypal && window.paypal.Buttons) {
@@ -174,30 +318,28 @@
         }, 500);
       });
     }
-    
+
     // Create order function
     function createOrder() {
-      return fetch('/create_pp_order_v2', {
+      var createOrderPayload = getCreateOrderRequestPayload();
+      return fetch('/create_pp_order_v2_raw_payload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          amount: '10.00',
-          currency: 'USD'
+        body: JSON.stringify(createOrderPayload)
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Order created:', data);
+          return data.order_response.id;
         })
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Order created:', data);
-        return data.id;
-      })
-      .catch(error => {
-        console.error('Error creating order:', error);
-        throw error;
-      });
+        .catch(error => {
+          console.error('Error creating order:', error);
+          throw error;
+        });
     }
-    
+
     // Handle payment approval
     function onApprove(data) {
       console.log('Payment approved:', data);
@@ -206,7 +348,7 @@
         <div class="muted">Order ID: ${data.orderID}</div>
       `;
     }
-    
+
     // Handle payment cancellation
     function onCancel(data) {
       console.log('Payment cancelled:', data);
@@ -214,7 +356,7 @@
         <div style="color:#f59e0b;font-weight:bold">Payment Cancelled</div>
       `;
     }
-    
+
     // Handle payment error
     function onError(err) {
       console.error('Payment error:', err);
@@ -223,13 +365,13 @@
         <div class="muted">${err.message || 'An error occurred'}</div>
       `;
     }
-    
+
     // Mode 1: Standard PayPal Smart Button (all available buttons)
     async function renderStandardButtons() {
       document.getElementById('status').innerHTML = '<div class="loading">Loading standard buttons...</div>';
-      
-      await loadPayPalSDK('buttons');
-      
+
+      await loadPayPalSDK('buttons,funding-eligibility');
+
       window.paypal.Buttons({
         createOrder: createOrder,
         onApprove: onApprove,
@@ -242,16 +384,16 @@
           label: 'paypal'
         }
       }).render('#paypal-button-container');
-      
+
       document.getElementById('status').innerHTML = '<div class="muted">Standard buttons rendered - showing all available payment methods</div>';
     }
-    
+
     // Mode 2: Limited button set (only specific buttons)
     async function renderLimitedButtons() {
       document.getElementById('status').innerHTML = '<div class="loading">Loading limited button set...</div>';
-      
-      await loadPayPalSDK('buttons');
-      
+
+      await loadPayPalSDK('buttons,funding-eligibility');
+
       // Render PayPal button
       window.paypal.Buttons({
         fundingSource: window.paypal.FUNDING.PAYPAL,
@@ -266,8 +408,9 @@
           label: 'paypal'
         }
       }).render('#paypal-button-container');
-      
+
       // Render Venmo button (if eligible)
+      console.log('is Funding eligibility (venmo)? ', window.paypal.isFundingEligible(window.paypal.FUNDING.VENMO));
       if (window.paypal.isFundingEligible(window.paypal.FUNDING.VENMO)) {
         window.paypal.Buttons({
           fundingSource: window.paypal.FUNDING.VENMO,
@@ -277,58 +420,74 @@
           onError: onError
         }).render('#paypal-button-container');
       }
-      
+
+      // Render Pay Later button (if eligible)
+      console.log('is Funding eligibility (pay later)? ', window.paypal.isFundingEligible(window.paypal.FUNDING.PAYLATER));
+      if (window.paypal.isFundingEligible(window.paypal.FUNDING.PAYLATER)) {
+        window.paypal.Buttons({
+          fundingSource: window.paypal.FUNDING.PAYLATER,
+          createOrder: createOrder,
+          onApprove: onApprove,
+          onCancel: onCancel,
+          onError: onError
+        }).render('#paypal-button-container');
+
+        //implement financing presentment api here if needed
+        initializePayPalFinancingPresentment();
+      }
+
+
       document.getElementById('status').innerHTML = '<div class="muted">Limited buttons rendered - showing PayPal and Venmo only</div>';
     }
-    
+
     // Mode 3: PayPal Marks with radio buttons
     async function renderMarksWithRadio() {
       document.getElementById('status').innerHTML = '<div class="loading">Loading marks with radio buttons...</div>';
-      
-      await loadPayPalSDK('buttons,marks');
-      
+
+      await loadPayPalSDK('buttons,funding-eligibility,marks');
+
       let selectedFundingSource = window.paypal.FUNDING.PAYPAL;
-      
+
       // Render marks for different funding sources
       const fundingSources = [
         window.paypal.FUNDING.PAYPAL,
         window.paypal.FUNDING.VENMO,
         window.paypal.FUNDING.PAYLATER
       ];
-      
+
       const marksContainer = document.getElementById('paypal-marks-container');
       marksContainer.innerHTML = '<div style="margin-bottom:12px;font-weight:bold">Select Payment Method:</div>';
-      
+
       for (const fundingSource of fundingSources) {
         if (window.paypal.isFundingEligible(fundingSource)) {
           const markContainer = document.createElement('div');
           markContainer.style.cssText = 'display:flex;align-items:center;margin:8px 0;padding:8px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer';
           markContainer.id = `mark-${fundingSource}`;
-          
+
           const radio = document.createElement('input');
           radio.type = 'radio';
           radio.name = 'paymentMethod';
           radio.value = fundingSource;
           radio.style.marginRight = '12px';
           radio.checked = fundingSource === window.paypal.FUNDING.PAYPAL;
-          
+
           const markElement = document.createElement('div');
           markElement.style.flex = '1';
-          
+
           markContainer.appendChild(radio);
           markContainer.appendChild(markElement);
           marksContainer.appendChild(markContainer);
-          
+
           // Render the mark
           window.paypal.Marks({
             fundingSource: fundingSource
           }).render(markElement);
-          
+
           // Handle selection
-          markContainer.addEventListener('click', function() {
+          markContainer.addEventListener('click', function () {
             selectedFundingSource = fundingSource;
             radio.checked = true;
-            
+
             // Update visual feedback
             document.querySelectorAll('[id^="mark-"]').forEach(mark => {
               mark.style.borderColor = '#e5e7eb';
@@ -336,11 +495,11 @@
             });
             markContainer.style.borderColor = '#0070ba';
             markContainer.style.background = '#e6f4ff';
-            
+
             // Re-render button for selected funding source
             renderButtonForFundingSource(selectedFundingSource);
           });
-          
+
           // Set initial selection style
           if (fundingSource === window.paypal.FUNDING.PAYPAL) {
             markContainer.style.borderColor = '#0070ba';
@@ -348,17 +507,17 @@
           }
         }
       }
-      
+
       // Render initial button for PayPal
       renderButtonForFundingSource(selectedFundingSource);
-      
+
       document.getElementById('status').innerHTML = '<div class="muted">Marks rendered - select a payment method above</div>';
     }
-    
+
     // Helper function to render button for specific funding source
     function renderButtonForFundingSource(fundingSource) {
       document.getElementById('paypal-button-container').innerHTML = '';
-      
+
       window.paypal.Buttons({
         fundingSource: fundingSource,
         createOrder: createOrder,
@@ -371,17 +530,221 @@
         }
       }).render('#paypal-button-container');
     }
-    
+
+    // Initialize PayPal Financing Presentment (if needed)
+    async function initializePayPalFinancingPresentment() {
+      console.log('Initializing PayPal Financing Presentment API...');
+
+      try {
+        // First, get the access token
+        const tokenResponse = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${CLIENT_ID}:${CLIENT_SECRET}`),
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: 'grant_type=client_credentials'
+        });
+
+        if (!tokenResponse.ok) {
+          throw new Error('Failed to get access token');
+        }
+
+        const tokenData = await tokenResponse.json();
+        const accessToken = tokenData.access_token;
+        console.log('Access token obtained for Financing Presentment');
+
+        // Fetch financing presentment messages
+        const presentmentResponse = await fetch('https://api-m.sandbox.paypal.com/v1/credit/fetch-presentment-messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            amount: {
+              currency_code: currency,
+              value: amount
+            },
+            buyer_country_code: buyerCountry
+          })
+        });
+
+        if (!presentmentResponse.ok) {
+          throw new Error('Failed to fetch presentment messages');
+        }
+
+        const presentmentData = await presentmentResponse.json();
+        console.log('Financing Presentment Data:', presentmentData);
+
+        // Render the Pay Later messaging
+        renderPayLaterMessage(presentmentData);
+      } catch (error) {
+        console.error('Error initializing Financing Presentment:', error);
+      }
+    }
+
+    // Render Pay Later messaging on the page
+    function renderPayLaterMessage(presentmentData) {
+      if (!presentmentData.messages || presentmentData.messages.length === 0) {
+        console.log('No Pay Later messages available');
+        return;
+      }
+
+      // Get the first message (primary message)
+      const message = presentmentData.messages[0];
+      const content = message.content?.default;
+      const meta = message.meta;
+
+      if (!content || !meta) {
+        console.log('Invalid message format');
+        return;
+      }
+
+      // Create message container if it doesn't exist
+      let messageContainer = document.getElementById('paylater-message-container');
+      if (!messageContainer) {
+        messageContainer = document.createElement('div');
+        messageContainer.id = 'paylater-message-container';
+        messageContainer.style.cssText = 'margin: 16px 0; padding: 16px; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 8px;';
+
+        // Insert before the button container
+        const buttonContainer = document.getElementById('paypal-button-container');
+        buttonContainer.parentNode.insertBefore(messageContainer, buttonContainer);
+      }
+
+      // Build the message HTML
+      const mainText = content.main || '';
+      const disclaimer = content.disclaimer || '';
+      const clickUrl = meta.click_url || '';
+      const impressionUrl = meta.impression_url || '';
+
+      messageContainer.innerHTML = `
+        <style>
+          .paylater-message {
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.5;
+          }
+          .paylater-message__logo {
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 8px;
+          }
+          .paylater-message__disclaimer {
+            color: #0070ba;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-left: 4px;
+          }
+          .paylater-message__disclaimer:hover {
+            color: #005ea6;
+          }
+          .paylater-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+          }
+          .paylater-modal__wrapper {
+            position: relative;
+          }
+          .paylater-modal__content {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+          }
+          .paylater-modal__close {
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            background: white;
+            border: 2px solid #333;
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            padding: 0;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            z-index: 10000;
+          }
+          .paylater-modal__close:hover {
+            background: #f0f0f0;
+            transform: scale(1.1);
+            transition: all 0.2s;
+          }
+        </style>
+        <p class="paylater-message">
+          <img class="paylater-message__logo" src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal logo">
+          ${mainText}
+          <span class="paylater-message__disclaimer" onclick="openPayLaterModal()">
+            ${disclaimer || 'Learn more'}
+          </span>
+          <img src="${impressionUrl}" aria-hidden="true" style="display:none;">
+        </p>
+        <div class="paylater-modal" id="paylater-modal" role="dialog" aria-modal="true" onclick="if(event.target === this) closePayLaterModal()">
+          <div class="paylater-modal__wrapper">
+            <button class="paylater-modal__close" onclick="closePayLaterModal()">✕</button>
+            <iframe
+              class="paylater-modal__content"
+              title="PayPal Pay Later Further Information"
+              src="${clickUrl}"
+              width="640"
+              height="900"
+            ></iframe>
+          </div>
+        </div>
+      `;
+
+      console.log('Pay Later message rendered successfully');
+      console.log('Message details:', {
+        creditProductGroup: meta.credit_product_group,
+        offerType: meta.offer_type,
+        offerCountryCode: meta.offer_country_code,
+        qualifying: meta.variables?.qualifying
+      });
+    }
+
+    // Open Pay Later modal
+    function openPayLaterModal() {
+      const modal = document.getElementById('paylater-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    }
+
+    // Close Pay Later modal
+    function closePayLaterModal() {
+      const modal = document.getElementById('paylater-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
     // Main initialization function
     async function initializePayPal() {
       const selectedMode = document.querySelector('input[name="renderMode"]:checked').value;
       const initButton = document.getElementById('initButton');
-      
+
       initButton.disabled = true;
       initButton.textContent = 'Initializing...';
-      
+
       try {
-        switch(selectedMode) {
+        switch (selectedMode) {
           case 'standard':
             await renderStandardButtons();
             break;
@@ -392,7 +755,7 @@
             await renderMarksWithRadio();
             break;
         }
-      } catch(error) {
+      } catch (error) {
         console.error('Error initializing PayPal:', error);
         document.getElementById('status').innerHTML = `
           <div style="color:#ef4444;font-weight:bold">Initialization Error</div>
@@ -405,4 +768,5 @@
     }
   </script>
 </body>
+
 </html>

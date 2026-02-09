@@ -92,6 +92,8 @@ gateway = braintree.BraintreeGateway(
     )
 )
 
+
+
 #statuses
 TRANSACTION_SUCCESS_STATUSES = [
     braintree.Transaction.Status.Authorized,
@@ -119,7 +121,7 @@ class MAID(Enum):
     EUR_PT_HUAWEI = "huawei_PT_EUR"
     GBP_UK_HUAWEI = "huawei_UK_GBP"
     #for use with gateway d6dyn57dn7yysw2b
-    stevenustest = "stevenustest" #USD
+    stevenustest = "stevenustest" #USD - for app switch testing
     stevenustest_GBP = "stevenustest_GBP" #GBP
     leachong_EUR = "leachong_EUR"
     leachong_USD = "leachong_USD"
@@ -128,9 +130,12 @@ class MAID(Enum):
 
 
     CHAIHENG_MAID = "paypal"
+    CHAIHENG_MAID_CARD = "EUR_MERCHANT_ACCOUNT"
 
 
-PROCESSING_MAID = MAID.stevenustest_GBP.value
+PROCESSING_MAID = MAID.stevenustest.value
+
+GRAPHQL_BT_VERSION = "2025-11-19"
 
 #merchant account id
 class SUBSCRIPTION_PLAN_ID(Enum): #support min month. No weekly billing cycle.
@@ -241,6 +246,18 @@ def ppcpvenmo():
 @app.route("/pp/bnpl", methods=["GET"])
 def ppcpbnpl():
     return render_template("pp_bnpl.html")
+
+
+@app.route("/pp/markflow", methods=["GET"])
+def ppcpmarkflow():
+    return render_template("pp_markflow.html")
+
+
+@app.route("/temu/demo", methods=["GET"])
+def temuDemo():
+    clientToken = getClientToken()
+    return render_template("sampleTemuCheckout.html", clientToken=clientToken)
+
 
 
 @app.route("/hostedfield", methods=["GET"])
@@ -378,6 +395,12 @@ def page_google_pay():
 def page_local_payments():
     """Render Local Payment Methods playground page (templates/local_payments.html)."""
     return render_template("local_payments.html")
+
+
+@app.route("/quick", methods=["GET"])
+def quick():
+    """Render quick playground page (templates/quick.html)."""
+    return render_template("quick.html")
 
 
 @app.route("/paypal", methods=["GET"])
@@ -631,20 +654,15 @@ def api_tokenize_card_graphql():
         }
         
         # Log request (with masked data)
-        print("GraphQL tokenization request:", {
+        print("GraphQL tokenization request (sandbox testing):", {
             "mutation": "tokenizeCreditCard",
-            "cardNumber": "****",
-            "cvv": "***",
+            "cardNumber": card_number,
+            "cvv": cvv,
             "hasAddress": bool(billing_address)
         })
         
-        # Get client token for authorization
-        client_token = getClientToken()
-
-        # To obtain an authorization fingerprint you must Base64 decode a client token, the decoded client token will contain an authorizationFingerprint value, which can then be passed in the Authorization header.
-        decoded_token = base64.b64decode(client_token).decode('utf-8')
-        token_info = json.loads(decoded_token)
-        authorization_fingerprint = token_info.get("authorizationFingerprint")
+        # Get auth_token
+        auth_token = getGraphQLAuthToken()
 
         # Make GraphQL request to Braintree
         graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
@@ -652,8 +670,8 @@ def api_tokenize_card_graphql():
         graphql_response = requests.post(
             graphql_url,
             headers={
-                "Authorization": f"Bearer {authorization_fingerprint}",
-                "Braintree-Version": "2025-11-19",
+                "Authorization": f"Bearer {auth_token}",
+                "Braintree-Version": GRAPHQL_BT_VERSION,
                 "Content-Type": "application/json"
             },
             json={
@@ -1138,6 +1156,1141 @@ def api_charge_payment_graphql():
         }), 500
 
 
+def getGraphQLAuthToken():
+    """Get authorization token for Braintree GraphQL API."""
+    
+    # Get Braintree Gateway configured public and private key
+    gateway_public_key = gateway.config.public_key
+    gateway_private_key = gateway.config.private_key
+
+    # concatenate public key and private key with : 
+    credentials = f"{gateway_public_key}:{gateway_private_key}"
+    # Base64 encode the credentials
+    encoded_credentials = base64.b64encode(credentials.encode('utf-8')).decode('utf-8')
+    return encoded_credentials
+
+@app.route("/api/create-client-token-graphql", methods=["POST"])
+def api_create_client_token_graphql():
+    """Create client token using Braintree GraphQL API with merchant account and customer ID.
+    
+    Request body:
+    {
+        "merchantAccountId": "leachong_EUR",
+        "customerId": "customer_123" (optional)
+    }
+    """
+    try:
+        data = request.json
+        merchant_account_id = data.get("merchantAccountId", PROCESSING_MAID)
+        customer_id = data.get("customerId")
+        
+        # Build GraphQL mutation
+        graphql_mutation = """
+            mutation CreateClientToken($input: CreateClientTokenInput!) {
+                createClientToken(input: $input) {
+                    clientToken
+                }
+            }
+        """
+        
+        # Build input
+        create_input = {
+            "clientToken": {
+                "merchantAccountId": merchant_account_id
+            }
+        }
+        
+        if customer_id:
+            create_input["clientToken"]["customerId"] = customer_id
+        
+        variables = {
+            "input": create_input
+        }
+        
+        print(f"Creating client token for MAID: {merchant_account_id}, Customer: {customer_id}")
+        
+        # Get authorization token
+        auth_token = getGraphQLAuthToken()
+        
+        # Make GraphQL request
+        graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
+        
+        graphql_response = requests.post(
+            graphql_url,
+            headers={
+                "Authorization": f"Bearer {auth_token}",
+                "Braintree-Version": GRAPHQL_BT_VERSION,
+                "Content-Type": "application/json"
+            },
+            json={
+                "query": graphql_mutation,
+                "variables": variables
+            }
+        )
+        
+        graphql_response.raise_for_status()
+        result = graphql_response.json()
+        
+        # Check for errors
+        if "errors" in result:
+            return jsonify({
+                "success": False,
+                "error": result["errors"][0].get("message", "Unknown error"),
+                "details": result["errors"]
+            }), 400
+        
+        if "data" in result and "createClientToken" in result["data"]:
+            client_token = result["data"]["createClientToken"]["clientToken"]
+            return jsonify({
+                "success": True,
+                "token": client_token
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Unexpected response format"
+            }), 500
+            
+    except Exception as e:
+        print(f"Error creating client token: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+def idFromLegacyId(legacy_id, type):
+    """Convert legacy ID to GraphQL ID using Braintree GraphQL API."""
+    graphql_query = """
+    query idFromLegacyId ($legacyId: ID!, $type: LegacyIdType!) {
+        idFromLegacyId (legacyId: $legacyId, type: $type)
+    }
+    """
+    variables = {
+        "legacyId": legacy_id,
+        "type": type
+    }
+    #print variables in json format
+    print(json.dumps(variables, indent=2))
+    
+    # Get authorization token
+    auth_token = getGraphQLAuthToken()
+    
+    # Make GraphQL request
+    graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
+    
+    graphql_response = requests.post(
+        graphql_url,
+        headers={
+            "Authorization": f"Bearer {auth_token}",
+            "Braintree-Version": GRAPHQL_BT_VERSION,
+            "Content-Type": "application/json"
+        },
+        json={
+            "query": graphql_query,
+            "variables": variables
+        }
+    )
+    
+    graphql_response.raise_for_status()
+    result = graphql_response.json()
+    return result
+
+
+@app.route("/api/get-vaulted-payment-methods", methods=["POST"])
+def api_get_vaulted_payment_methods():
+    """Get vaulted payment methods for a customer using Braintree GraphQL.
+    
+    Request body:
+    {
+        "customerId": "customer_123"
+    }
+    """
+    try:
+        data = request.json
+        customer_id = data.get("customerId") #legacy customer id    
+
+        if not customer_id:
+            return jsonify({
+                "success": False,
+                "error": "customerId is required"
+            }), 400
+
+        # GraphQL idFromLegacyId
+        id_result = idFromLegacyId(customer_id, "CUSTOMER")
+
+        graphQL_customer_id = None
+        if "data" in id_result and id_result["data"]["idFromLegacyId"]:
+            graphQL_customer_id = id_result["data"]["idFromLegacyId"]
+
+        if not graphQL_customer_id:
+            return jsonify({
+                "success": False,
+                "error": "Could not find GraphQL ID for the provided customerId"
+            }), 400
+
+
+        # Build GraphQL query
+        graphql_query = """
+            query GetCustomer($id: ID!) {
+                node(id: $id) {
+                    ... on Customer {
+                        id
+                        legacyId
+                        paymentMethods(first: 10) {
+                            edges {
+                                node {
+                                    id
+                                    usage
+                                    details {
+                                        __typename
+                                        ... on CreditCardDetails {
+                                            uniqueNumberIdentifier
+                                            brandCode
+                                            last4
+                                            bin
+                                            expirationMonth
+                                            expirationYear
+                                            cardholderName
+                                        }
+                                        ... on PayPalAccountDetails {
+                                            email
+                                            billingAgreementId
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        """
+        
+        variables = {
+            "id": graphQL_customer_id
+        }
+
+        #print variables in json format
+        print(json.dumps(variables, indent=2))
+
+        print(f"get_vaulted_payment_methods with graphQL_customer_id: {graphQL_customer_id}")
+        
+        # Get authorization token
+        auth_token = getGraphQLAuthToken()
+        
+        # Make GraphQL request
+        graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
+        
+        graphql_response = requests.post(
+            graphql_url,
+            headers={
+                "Authorization": f"Bearer {auth_token}",
+                "Braintree-Version": GRAPHQL_BT_VERSION,
+                "Content-Type": "application/json"
+            },
+            json={
+                "query": graphql_query,
+                "variables": variables
+            }
+        )
+        
+        graphql_response.raise_for_status()
+        result = graphql_response.json()
+        
+        # Check for errors
+        if "errors" in result:
+            return jsonify({
+                "success": False,
+                "error": result["errors"][0].get("message", "Unknown error"),
+                "details": result["errors"]
+            }), 400
+        
+        if "data" in result and result["data"]["node"]:
+            payment_methods = []
+            edges = result["data"]["node"].get("paymentMethods", {}).get("edges", [])
+            
+            for edge in edges:
+                node = edge["node"]
+                payment_method = {
+                    "id": node["id"],
+                    "usage": node["usage"]
+                }
+                
+                details = node.get("details", {})
+                if details.get("__typename") == "CreditCardDetails":
+                    payment_method["type"] = "CreditCard"
+                    payment_method["brandCode"] = details.get("brandCode")
+                    payment_method["last4"] = details.get("last4")
+                    payment_method["bin"] = details.get("bin")
+                    payment_method["expirationMonth"] = details.get("expirationMonth")
+                    payment_method["expirationYear"] = details.get("expirationYear")
+                    payment_method["cardholderName"] = details.get("cardholderName")
+                    payment_method["uniqueNumberIdentifier"] = details.get("uniqueNumberIdentifier")
+                elif details.get("__typename") == "PayPalAccountDetails":
+                    payment_method["type"] = "PayPal"
+                    payment_method["email"] = details.get("email")
+                
+                payment_methods.append(payment_method)
+            
+            return jsonify({
+                "success": True,
+                "paymentMethods": payment_methods
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "paymentMethods": []
+            })
+            
+    except Exception as e:
+        print(f"Error getting vaulted payment methods: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/check-3ds-requirement", methods=["POST"])
+def api_check_3ds_requirement():
+    """Determine if 3DS is required based on business rules.
+    
+    Request body:
+    {
+        "amount": "10.00",
+        "currency": "EUR",
+        "paymentMethodId": "payment_method_id",
+        "bin": "411111"
+    }
+    
+    Returns:
+    {
+        "requires3DS": true/false,
+        "scaExemption": null or "LOW_VALUE" or "TRANSACTION_RISK_ANALYSIS",
+        "reason": "explanation"
+    }
+    """
+    try:
+        data = request.json
+        amount = float(data.get("amount", 0))
+        currency = data.get("currency", "EUR").upper()
+        
+        # SCA exemption thresholds
+        # LOW_VALUE: EUR 30, GBP 25
+        # TRANSACTION_RISK_ANALYSIS: EUR 250, GBP 220
+        
+        low_value_thresholds = {
+            "EUR": 30,
+            "GBP": 25
+        }
+        
+        tra_thresholds = {
+            "EUR": 250,
+            "GBP": 220
+        }
+        
+        # Check if exemption applies
+        low_value_limit = low_value_thresholds.get(currency, 0)
+        tra_limit = tra_thresholds.get(currency, 0)
+        
+        #sandbox stud - to trigger LOW_VALUE exemption
+        if amount == 2099: 
+            return jsonify({
+                "success": True,
+                "requires3DS": False,
+                "scaExemption": "LOW_VALUE",
+                "reason": f"Amount {amount} {currency} is <= {low_value_limit} {currency}, LOW_VALUE exemption applies"
+            })
+
+
+        if amount <= low_value_limit: 
+            return jsonify({
+                "success": True,
+                "requires3DS": False,
+                "scaExemption": "LOW_VALUE",
+                "reason": f"Amount {amount} {currency} is <= {low_value_limit} {currency}, LOW_VALUE exemption applies"
+            })
+        elif amount <= tra_limit:
+            return jsonify({
+                "success": True,
+                "requires3DS": False,
+                "scaExemption": "TRANSACTION_RISK_ANALYSIS",
+                "reason": f"Amount {amount} {currency} is <= {tra_limit} {currency}, TRANSACTION_RISK_ANALYSIS exemption applies"
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "requires3DS": True,
+                "scaExemption": None,
+                "reason": f"Amount {amount} {currency} exceeds exemption thresholds, 3DS required"
+            })
+            
+    except Exception as e:
+        print(f"Error checking 3DS requirement: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/charge-with-exemption", methods=["POST"])
+def api_charge_with_exemption():
+    """Charge a payment method with SCA exemption using Braintree GraphQL.
+    Handles 2099 decline code by returning flag to retry with 3DS.
+    
+    Request body:
+    {
+        "paymentMethodId": "nonce_or_vault_id",
+        "amount": "10.00",
+        "currency": "EUR",
+        "scaExemption": "LOW_VALUE" or "TRANSACTION_RISK_ANALYSIS",
+        "merchantAccountId": "leachong_EUR",
+        "orderId": "ORDER-123",
+        "deviceData": "device_data"
+    }
+    """
+    try:
+        data = request.json
+        
+        payment_method_id = data.get("paymentMethodId")
+        amount = data.get("amount")
+        currency = data.get("currency", "EUR")
+        sca_exemption = data.get("scaExemption")
+        merchant_account_id = data.get("merchantAccountId", PROCESSING_MAID)
+        order_id = data.get("orderId")
+        device_data = data.get("deviceData")
+        save_card = data.get("saveCard", False)
+        customer_id = data.get("customerId")
+        descriptor = data.get("descriptor")  # Expecting an object with name, phone, url fields
+
+
+        if not payment_method_id or not amount:
+            return jsonify({
+                "success": False,
+                "error": "paymentMethodId and amount are required"
+            }), 400
+        
+        # Build GraphQL mutation
+        graphql_mutation = """
+            mutation ChargeCreditCard($input: ChargeCreditCardInput!) {
+                chargeCreditCard(input: $input) {
+                    transaction {
+                        id
+                        legacyId
+                        createdAt
+                        amount {
+                            value
+                            currencyIsoCode
+                        }
+                        orderId
+                        status
+                        statusHistory {
+                            status
+                            timestamp
+                        }
+                        merchantAccountId
+                        processorResponse {
+                            legacyCode
+                            message
+                            cvvResponse
+                            avsPostalCodeResponse
+                            avsStreetAddressResponse
+                            authorizationId
+                            additionalInformation
+                            retrievalReferenceNumber
+                            emvData
+                        }
+                        paymentMethodSnapshot {
+                            ... on CreditCardDetails {
+                                brandCode
+                                last4
+                                cardholderName
+                            }
+                        }
+                        paymentMethod {
+                            id
+                            legacyId
+                            usage
+                            createdAt
+                            details {
+                                ... on CreditCardDetails {
+                                    brandCode
+                                    last4
+                                    bin
+                                    expirationMonth
+                                    expirationYear
+                                    cardholderName
+                                    uniqueNumberIdentifier
+                                    imageUrl
+                                    brand
+                                    cardOnFileNetworkTokenized
+                                }
+                            }
+                            customer {
+                                id
+                                legacyId
+                                company
+                                createdAt
+                                email
+                                firstName
+                                lastName
+                                phoneNumber
+                                fax
+                                website
+                            }
+                        }
+                    }
+                }
+            }
+        """
+        
+        # Build charge input
+        charge_input = {
+            "paymentMethodId": payment_method_id,
+            "transaction": {
+                "amount": str(amount)
+                #custom fields can be added here if needed
+                #vaultPaymentMethodAfterTransacting: save_card
+            }
+            ,
+            "options": {
+             #   "submitForSettlement": True
+            }
+        }
+        
+        # Add merchant account ID
+        if merchant_account_id:
+            charge_input["transaction"]["merchantAccountId"] = merchant_account_id
+        
+        # Add SCA exemption
+        if sca_exemption:
+            charge_input["options"]["scaExemption"] = sca_exemption
+            
+        # Add order ID
+        if order_id:
+            charge_input["transaction"]["orderId"] = order_id
+
+        # Add device data
+        if device_data:
+            charge_input["transaction"]["riskData"] = {
+                "deviceData": device_data
+            }
+        
+        # save card: GraphQL expects an object VaultPaymentMethodAfterTransactingInput, not a raw enum string
+        if save_card:
+            charge_input["transaction"]["vaultPaymentMethodAfterTransacting"] = {
+                "when": "ON_SUCCESSFUL_TRANSACTION"
+            }
+        # Add customer ID // this refers to the legacy customer ID
+        if customer_id:
+            charge_input["transaction"]["customerId"] = customer_id
+
+        #add descriptor
+        if descriptor:
+            charge_input["transaction"]["descriptor"] = descriptor
+
+        variables = {
+            "input": charge_input
+        }
+        
+        #print variables in json format
+        print(json.dumps(variables, indent=2))
+
+        print(f"Charging with exemption: {sca_exemption}, Amount: {amount} {currency}")
+        
+        # Get authorization token
+        auth_token = getGraphQLAuthToken()
+        
+        # Make GraphQL request
+        graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
+        
+        graphql_response = requests.post(
+            graphql_url,
+            headers={
+                "Authorization": f"Bearer {auth_token}",
+                "Braintree-Version": GRAPHQL_BT_VERSION,
+                "Content-Type": "application/json"
+            },
+            json={
+                "query": graphql_mutation,
+                "variables": variables
+            }
+        )
+        
+        graphql_response.raise_for_status()
+        result = graphql_response.json()
+        
+        # Check for GraphQL errors
+        if "errors" in result:
+            error_message = result["errors"][0].get("message", "Unknown error")
+            
+            # Check for 2099 decline code (SCA required)
+            if "2099" in error_message or "authentication" in error_message.lower():
+                return jsonify({
+                    "success": False,
+                    "requires3DS": True,
+                    "declineCode": "2099",
+                    "error": "Strong Customer Authentication required",
+                    "details": result["errors"]
+                })
+            
+            return jsonify({
+                "success": False,
+                "error": error_message,
+                "details": result["errors"]
+            }), 400
+        
+        # Extract transaction data
+        if "data" in result and "chargeCreditCard" in result["data"]:
+            transaction = result["data"]["chargeCreditCard"]["transaction"]
+            
+            # Check status
+            status = transaction.get("status")
+            
+            # Check processor response for decline code 2099
+            processor_response = transaction.get("processorResponse", {})
+            processor_message = processor_response.get("message", "")
+            legacyCode = processor_response.get("legacyCode", "")
+            
+                        
+            success_statuses = {
+                "SETTLED",
+                "SETTLING",
+                "SUBMITTED_FOR_SETTLEMENT",
+                "AUTHORIZED",
+                "AUTHORIZING",
+                "VOIDED"
+            }
+
+            if status == "PROCESSOR_DECLINED" and legacyCode =="2099":
+                return jsonify({
+                    "success": False,
+                    "requires3DS": True,
+                    "declineCode": "2099",
+                    "transactionId": transaction["id"],
+                    "error": "Transaction declined - Strong Customer Authentication required",
+                    "processorMessage": processor_message,
+                    "QLResponse": result
+                })
+            elif status not in success_statuses:
+                return jsonify({
+                    "success": False,
+                    "requires3DS": False,
+                    "declineCode": legacyCode,
+                    "transactionId": transaction["id"],
+                    "error": "See processor_message for details",
+                    "processorMessage": processor_message,
+                    "QLResponse": result
+                })
+                
+            # Format payment method info
+            payment_method_info = {}
+            snapshot = transaction.get("paymentMethodSnapshot")
+            if snapshot and "brandCode" in snapshot:
+                payment_method_info = {
+                    "brand": snapshot.get("brandCode"),
+                    "last4": snapshot.get("last4"),
+                    "cardholderName": snapshot.get("cardholderName")
+                }
+            
+            return jsonify({
+                "success": True,
+                "transactionId": transaction["id"],
+                "legacyId": transaction.get("legacyId"),
+                "amount": transaction["amount"]["value"],
+                "currency": transaction["amount"]["currencyIsoCode"],
+                "status": status,
+                "orderId": transaction.get("orderId"),
+                "paymentMethod": payment_method_info,
+                "processorResponse": processor_response,
+                "QLResponse": result
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Unexpected response format",
+                "details": result
+            }), 500
+            
+    except Exception as e:
+        print(f"Error charging with exemption: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route("/api/charge-with-threed", methods=["POST"])
+def api_charge_with_threed():
+    """Charge a payment method with 3DS using Braintree GraphQL.
+    Handles 2099 decline code by returning flag to retry with 3DS.
+    
+    Request body:
+    {
+        "paymentMethodId": "nonce_or_vault_id",
+        "amount": "10.00",
+        "currency": "EUR",
+        "scaExemption": "LOW_VALUE" or "TRANSACTION_RISK_ANALYSIS",
+        "merchantAccountId": "leachong_EUR",
+        "orderId": "ORDER-123",
+        "deviceData": "device_data"
+    }
+    """
+    try:
+        data = request.json
+        
+        payment_method_id = data.get("paymentMethodId")
+        amount = data.get("amount")
+        currency = data.get("currency", "EUR")
+        sca_exemption = data.get("scaExemption")
+        merchant_account_id = data.get("merchantAccountId", PROCESSING_MAID)
+        order_id = data.get("orderId")
+        device_data = data.get("deviceData")
+        save_card = data.get("saveCard", False)
+        customer_id = data.get("customerId")
+        descriptor = data.get("descriptor")  # Expecting an object with name, phone, url fields
+
+        if not payment_method_id or not amount:
+            return jsonify({
+                "success": False,
+                "error": "paymentMethodId and amount are required"
+            }), 400
+        
+        # Build GraphQL mutation
+        graphql_mutation = """
+            mutation ChargeCreditCard($input: ChargeCreditCardInput!) {
+                chargeCreditCard(input: $input) {
+                    transaction {
+                        id
+                        legacyId
+                        createdAt
+                        amount {
+                            value
+                            currencyIsoCode
+                        }
+                        orderId
+                        status
+                        statusHistory {
+                            ... on GatewayRejectedEvent {
+                                gatewayRejectionReason
+                                status
+                                timestamp
+                                terminal
+                            }
+                            status
+                            timestamp
+                        }
+                        merchantAccountId
+                        processorResponse {
+                            legacyCode
+                            message
+                            cvvResponse
+                            avsPostalCodeResponse
+                            avsStreetAddressResponse
+                            authorizationId
+                            additionalInformation
+                            retrievalReferenceNumber
+                            emvData
+                        }
+                        paymentMethodSnapshot {
+                            ... on CreditCardDetails {
+                                brandCode
+                                last4
+                                cardholderName
+                            }
+                        }
+                        paymentMethod {
+                            id
+                            legacyId
+                            usage
+                            createdAt
+                            details {
+                                ... on CreditCardDetails {
+                                    brandCode
+                                    last4
+                                    bin
+                                    expirationMonth
+                                    expirationYear
+                                    cardholderName
+                                    uniqueNumberIdentifier
+                                    imageUrl
+                                    brand
+                                    cardOnFileNetworkTokenized
+                                }
+                            }
+                            customer {
+                                id
+                                legacyId
+                                company
+                                createdAt
+                                email
+                                firstName
+                                lastName
+                                phoneNumber
+                                fax
+                                website
+                            }
+                        }
+                    }
+                }
+            }
+        """
+        
+        # Build charge input
+        charge_input = {
+            "paymentMethodId": payment_method_id,
+            "transaction": {
+                "amount": str(amount)
+                #custom fields can be added here if needed
+                #vaultPaymentMethodAfterTransacting: save_card
+            }
+            ,
+            "options": {
+             #   "submitForSettlement": True
+            }
+        }
+        
+        # Add merchant account ID
+        if merchant_account_id:
+            charge_input["transaction"]["merchantAccountId"] = merchant_account_id
+        
+        # Add SCA exemption
+        if sca_exemption:
+            charge_input["options"]["scaExemption"] = sca_exemption
+            
+        # Add order ID
+        if order_id:
+            charge_input["transaction"]["orderId"] = order_id
+
+        # Add device data
+        if device_data:
+            charge_input["transaction"]["riskData"] = {
+                "deviceData": device_data
+            }
+        
+        # save card: GraphQL expects an object VaultPaymentMethodAfterTransactingInput, not a raw enum string
+        if save_card:
+            charge_input["transaction"]["vaultPaymentMethodAfterTransacting"] = {
+                "when": "ON_SUCCESSFUL_TRANSACTION"
+            }
+
+        # Add customer ID
+        if customer_id:
+            charge_input["transaction"]["customerId"] = customer_id
+
+        #add descriptor
+        if descriptor:
+            charge_input["transaction"]["descriptor"] = descriptor
+
+        variables = {
+            "input": charge_input
+        }
+        
+        #print variables in json format
+        print(json.dumps(variables, indent=2))
+
+        print(f"Charging with exemption: {sca_exemption}, Amount: {amount} {currency}")
+        
+        # Get authorization token
+        auth_token = getGraphQLAuthToken()
+        
+        # Make GraphQL request
+        graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
+        
+        graphql_response = requests.post(
+            graphql_url,
+            headers={
+                "Authorization": f"Bearer {auth_token}",
+                "Braintree-Version": GRAPHQL_BT_VERSION,
+                "Content-Type": "application/json"
+            },
+            json={
+                "query": graphql_mutation,
+                "variables": variables
+            }
+        )
+        
+        graphql_response.raise_for_status()
+        result = graphql_response.json()
+        
+        # Check for GraphQL errors
+        if "errors" in result:
+            error_message = result["errors"][0].get("message", "Unknown error")
+            
+            # Check for 2099 decline code (SCA required)
+            if "2099" in error_message or "authentication" in error_message.lower():
+                return jsonify({
+                    "success": False,
+                    "requires3DS": True,
+                    "declineCode": "2099",
+                    "error": "Strong Customer Authentication required",
+                    "details": result["errors"]
+                })
+            
+            return jsonify({
+                "success": False,
+                "error": error_message,
+                "details": result["errors"]
+            }), 400
+        
+        # Extract transaction data
+        if "data" in result and "chargeCreditCard" in result["data"]:
+            transaction = result["data"]["chargeCreditCard"]["transaction"]
+            
+            # Check status
+            status = transaction.get("status")
+            
+            # Check processor response for decline code 2099
+            processor_response = transaction.get("processorResponse", {})
+            processor_message = processor_response.get("message", "")
+            legacyCode = processor_response.get("legacyCode", "")
+            
+            success_statuses = {
+                "SETTLED",
+                "SETTLING",
+                "SUBMITTED_FOR_SETTLEMENT",
+                "AUTHORIZED",
+                "AUTHORIZING",
+                "VOIDED"
+            }
+
+            if status == "PROCESSOR_DECLINED" and legacyCode =="2099":
+                return jsonify({
+                    "success": False,
+                    "requires3DS": True,
+                    "declineCode": "2099",
+                    "transactionId": transaction["id"],
+                    "error": "Transaction declined - Strong Customer Authentication required",
+                    "processorMessage": processor_message,
+                    "QLResponse": result
+                })
+            elif status not in success_statuses:
+                return jsonify({
+                    "success": False,
+                    "requires3DS": False,
+                    "declineCode": legacyCode,
+                    "transactionId": transaction["id"],
+                    "error": "See processor_message for details",
+                    "processorMessage": processor_message,
+                    "QLResponse": result
+                })
+            
+            # Format payment method info
+            payment_method_info = {}
+            snapshot = transaction.get("paymentMethodSnapshot")
+            if snapshot and "brandCode" in snapshot:
+                payment_method_info = {
+                    "brand": snapshot.get("brandCode"),
+                    "last4": snapshot.get("last4"),
+                    "cardholderName": snapshot.get("cardholderName")
+                }
+            
+            return jsonify({
+                "success": True,
+                "transactionId": transaction["id"],
+                "legacyId": transaction.get("legacyId"),
+                "amount": transaction["amount"]["value"],
+                "currency": transaction["amount"]["currencyIsoCode"],
+                "status": status,
+                "orderId": transaction.get("orderId"),
+                "paymentMethod": payment_method_info,
+                "processorResponse": processor_response,
+                "QLResponse": result
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Unexpected response format",
+                "details": result
+            }), 500
+            
+    except Exception as e:
+        print(f"Error charging with exemption: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/charge-vaulted-card", methods=["POST"])
+def api_charge_vaulted_card():
+    """Charge a vaulted card with 3DS verified nonce using Braintree GraphQL.
+    
+    Request body:
+    {
+        "nonce": "3ds_verified_nonce",
+        "amount": "10.00",
+        "currency": "EUR",
+        "merchantAccountId": "leachong_EUR",
+        "orderId": "ORDER-123",
+        "deviceData": "device_data"
+    }
+    """
+    try:
+        data = request.json
+        
+        nonce = data.get("nonce")
+        amount = data.get("amount")
+        currency = data.get("currency", "EUR")
+        merchant_account_id = data.get("merchantAccountId", PROCESSING_MAID)
+        order_id = data.get("orderId")
+        device_data = data.get("deviceData")
+        
+        if not nonce or not amount:
+            return jsonify({
+                "success": False,
+                "error": "nonce and amount are required"
+            }), 400
+        
+        # Build GraphQL mutation
+        graphql_mutation = """
+            mutation ChargeCreditCard($input: ChargeCreditCardInput!) {
+                chargeCreditCard(input: $input) {
+                    transaction {
+                        id
+                        legacyId
+                        createdAt
+                        amount {
+                            value
+                            currencyIsoCode
+                        }
+                        orderId
+                        status
+                        statusHistory {
+                            status
+                            timestamp
+                        }
+                        merchantAccountId
+                        processorResponse {
+                            legacyCode
+                            message
+                            cvvResponse
+                            avsPostalCodeResponse
+                            avsStreetAddressResponse
+                            authorizationId
+                            additionalInformation
+                            retrievalReferenceNumber
+                            emvData
+                        }
+                        paymentMethodSnapshot {
+                            ... on CreditCardDetails {
+                                brandCode
+                                last4
+                                cardholderName
+                                threeDSecure {
+                                    authentication {
+                                        liabilityShifted
+                                        liabilityShiftPossible
+                                        threeDSecureVersion
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        """
+        
+        # Build charge input
+        charge_input = {
+            "paymentMethodId": nonce,
+            "transaction": {
+                "amount": str(amount)
+            },
+            "options": {
+                "submitForSettlement": True
+            }
+        }
+        
+        # Add merchant account ID
+        if merchant_account_id:
+            charge_input["transaction"]["merchantAccountId"] = merchant_account_id
+        
+        # Add order ID
+        if order_id:
+            charge_input["transaction"]["orderId"] = order_id
+        
+        # Add device data
+        if device_data:
+            charge_input["transaction"]["riskData"] = {
+                "deviceData": device_data
+            }
+        
+        variables = {
+            "input": charge_input
+        }
+        
+        print(f"Charging vaulted card with 3DS nonce: Amount {amount} {currency}")
+        
+        # Get authorization token
+        auth_token = getGraphQLAuthToken()
+        
+        # Make GraphQL request
+        graphql_url = "https://payments.sandbox.braintree-api.com/graphql"
+        
+        graphql_response = requests.post(
+            graphql_url,
+            headers={
+                "Authorization": f"Bearer {auth_token}",
+                "Braintree-Version": GRAPHQL_BT_VERSION,
+                "Content-Type": "application/json"
+            },
+            json={
+                "query": graphql_mutation,
+                "variables": variables
+            }
+        )
+        
+        graphql_response.raise_for_status()
+        result = graphql_response.json()
+        
+        # Check for GraphQL errors
+        if "errors" in result:
+            return jsonify({
+                "success": False,
+                "error": result["errors"][0].get("message", "Unknown error"),
+                "details": result["errors"]
+            }), 400
+        
+        # Extract transaction data
+        if "data" in result and "chargeCreditCard" in result["data"]:
+            transaction = result["data"]["chargeCreditCard"]["transaction"]
+            
+            # Format payment method info
+            payment_method_info = {}
+            snapshot = transaction.get("paymentMethodSnapshot")
+            if snapshot and "brandCode" in snapshot:
+                payment_method_info = {
+                    "brand": snapshot.get("brandCode"),
+                    "last4": snapshot.get("last4"),
+                    "cardholderName": snapshot.get("cardholderName"),
+                    "threeDSecure": snapshot.get("threeDSecure")
+                }
+            
+            return jsonify({
+                "success": True,
+                "transactionId": transaction["id"],
+                "legacyId": transaction.get("legacyId"),
+                "amount": transaction["amount"]["value"],
+                "currency": transaction["amount"]["currencyIsoCode"],
+                "status": transaction["status"],
+                "orderId": transaction.get("orderId"),
+                "paymentMethod": payment_method_info,
+                "processorResponse": transaction.get("processorResponse")
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Unexpected response format",
+                "details": result
+            }), 500
+            
+    except Exception as e:
+        print(f"Error charging vaulted card: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 @app.route("/api/transactions-graphql", methods=["GET"])
 def api_get_transactions_graphql():
     """Get transaction list using Braintree GraphQL API.
@@ -1232,7 +2385,7 @@ def api_get_transactions_graphql():
             graphql_url,
             headers={
                 "Authorization": f"Bearer {client_token}",
-                "Braintree-Version": "2021-02-01",
+                "Braintree-Version": GRAPHQL_BT_VERSION,
                 "Content-Type": "application/json"
             },
             json={
@@ -2016,11 +3169,88 @@ def completePPCheckout():
 
 
 
+@app.route("/orders/<order_id>/authorize", methods=["POST"])
+def authorize_pp_order_ios(order_id):
+    """
+    Authorize PayPal order endpoint compatible with iOS implementation.
+    Expects order_id in URL path and optional PayPal-Client-Metadata-Id header.
+    
+    URL: /orders/{order_id}/authorize
+    Headers: 
+        - PayPal-Client-Metadata-Id (optional)
+        - x-client-id (optional, for client credentials)
+        - x-client-secret (optional, for client credentials)
+    """
+    print(f"Authorize order request for order_id: {order_id}")
+    
+    # Get PayPal-Client-Metadata-Id from headers if provided
+    paypal_client_metadata_id = request.headers.get("PayPal-Client-Metadata-Id")
+    
+    # Get client credentials from headers or use default
+    clientId = request.headers.get("x-client-id")
+    clientSecret = request.headers.get("x-client-secret")
+    
+    if paypal_client_metadata_id:
+        print(f"PayPal-Client-Metadata-Id: {paypal_client_metadata_id}")
+    
+    try:
+        clientToken = post_pp_client_token(clientId, clientSecret)    
+        order_response = post_pp_auth_order(clientToken, order_id, paypal_client_metadata_id)
+        
+        # Return the order response directly (compatible with iOS Order model)
+        return jsonify(order_response)
+    except Exception as e:
+        print(f"Error authorizing order: {str(e)}")
+        return jsonify({
+            "error": str(e),
+            "message": "Failed to authorize order"
+        }), 500
+
+@app.route("/orders/<order_id>/capture", methods=["POST"])
+def capture_pp_order_ios(order_id):
+    """
+    Capture PayPal order endpoint compatible with iOS implementation.
+    Expects order_id in URL path and optional PayPal-Client-Metadata-Id header.
+    
+    URL: /orders/{order_id}/capture
+    Headers: 
+        - PayPal-Client-Metadata-Id (optional)
+        - x-client-id (optional, for client credentials)
+        - x-client-secret (optional, for client credentials)
+    """
+    print(f"Capture order request for order_id: {order_id}")
+    
+    # Get PayPal-Client-Metadata-Id from headers if provided
+    paypal_client_metadata_id = request.headers.get("PayPal-Client-Metadata-Id")
+    
+    # Get client credentials from headers or use default
+    clientId = request.headers.get("x-client-id")
+    clientSecret = request.headers.get("x-client-secret")
+    
+    if paypal_client_metadata_id:
+        print(f"PayPal-Client-Metadata-Id: {paypal_client_metadata_id}")
+    
+    try:
+        clientToken = post_pp_client_token(clientId, clientSecret)    
+        order_response = post_pp_capture_order(clientToken, order_id, paypal_client_metadata_id)
+        
+        # Return the order response directly (compatible with iOS Order model)
+        return jsonify(order_response)
+    except Exception as e:
+        print(f"Error capturing order: {str(e)}")
+        return jsonify({
+            "error": str(e),
+            "message": "Failed to capture order"
+        }), 500
+
 @app.route("/authorize_pp_order", methods=["POST"])
 def authorize_pp_order():
+    """
+    Legacy authorize order endpoint (body-based).
+    Kept for backward compatibility with existing web clients.
+    """
     data = request.get_json()
     print("Received JSON:", data)  # Print the whole payload
-    #custId = data.get("custId")  # ✅ returns None instead of error if key is not present
     
     #try to retrieve client token from data
     clientId = data.get("client_id")
@@ -2038,6 +3268,9 @@ def authorize_pp_order():
             "success": True,
             "order_response": order_response
         })
+
+
+
 
 
 
@@ -2220,6 +3453,74 @@ def createPPOrderV2_Raw_Payload():
             "success": True,
             "order_response": order_response
         })
+
+
+@app.route("/create_pp_order_ios_raw_payload", methods=["POST"])
+def createPPOrderV2_ios_Raw_Payload():
+    data = request.get_json()
+    print("Received JSON:", data)  # Print the whole payload
+    #custId = data.get("custId")  # ✅ returns None instead of error if key is not present
+    
+    #try to retrieve client token from data
+    clientId = data.get("client_id")
+    clientSecret = data.get("client_secret")
+    #remove clientId and clientSecret from data to avoid issues
+    data.pop("client_id", None)
+    data.pop("client_secret", None)
+
+    intent = data.get("intent")
+    currency = data.get("purchaseUnits")[0].get("amount")["currencyCode"] 
+    amount = data.get("purchaseUnits")[0].get("amount")["value"]
+    print("Currency: ", currency, " Amount: ", amount)
+
+    payload = {
+        "intent": intent,
+        "purchase_units": [
+            {
+                "reference_id": "d1234567-38f0-1234-1234-0ed123456789",
+                "invoice_id": str(uuid.uuid1()),
+                "amount": {
+                    "currency_code": currency,
+                    "value": amount,
+                    "breakdown": {
+                        "item_total": {
+                            "currency_code": currency,
+                            "value": amount
+                        },
+                    }
+                }
+            }
+        ]
+    }
+
+    paymentSource = data.get("paymentSource") 
+    if paymentSource is not None:
+        payload["payment_source"] = {
+        "paypal": {
+            "experience_context": {
+                "return_url": "https://example.com/returnUrl",
+                "cancel_url": "https://example.com/cancelUrl",
+                #"shipping_preference": "SET_PROVIDED_ADDRESS",
+                "user_action": "PAY_NOW",
+                "locale": "en-US"
+            },
+            "attributes": {
+                "vault": {
+                    "store_in_vault": "ON_SUCCESS",
+                    "usage_type": "MERCHANT"
+                }
+            }
+        }
+    }
+
+
+    clientToken = post_pp_client_token(clientId, clientSecret)    
+    order_response = post_pp_create_order_raw(clientToken, payload)
+
+    return jsonify(order_response
+        )
+
+
 
 
 @app.route("/create_pp_order_v2", methods=["POST"])
@@ -2714,7 +4015,7 @@ def send_pp_payout(clientToken, currency, amount, payout_receiver_email_list):
 # Only run test function in the main process
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
 
-    decode_base64('eyJpbnRlbnQiOiJhdXRob3JpemUiLCJwYXllciI6eyJwYXltZW50X21ldGhvZCI6InBheXBhbCIsImZ1bmRpbmdfaW5zdHJ1bWVudHMiOlt7ImJpbGxpbmciOnsiYmlsbGluZ19hZ3JlZW1lbnRfaWQiOiJCLTVORTM5NDE1V0I0OTE0NDE3In19XX0sInRyYW5zYWN0aW9ucyI6W3siYW1vdW50Ijp7InRvdGFsIjoiMjcyLjQyIiwiY3VycmVuY3kiOiJVU0QiLCJkZXRhaWxzIjp7InN1YnRvdGFsIjoiMjMzLjAwIiwic2hpcHBpbmciOiIyNC4wMCIsImluc3VyYW5jZSI6IjE1LjQyIn19LCJpbnZvaWNlX251bWJlciI6IkZGUFBTQlgyNlM2WEFDRUZEMzNZIiwicGF5bWVudF9vcHRpb25zIjp7ImFsbG93ZWRfcGF5bWVudF9tZXRob2QiOiJVTlJFU1RSSUNURUQiLCJyZWN1cnJpbmdfZmxhZyI6ZmFsc2UsInNraXBfZm1mIjpmYWxzZX0sIml0ZW1fbGlzdCI6eyJpdGVtcyI6W3sibmFtZSI6IioqKioqKioqKioiLCJza3UiOiIwIiwicHJpY2UiOiIyMzMuMDAiLCJjdXJyZW5jeSI6IlVTRCIsInF1YW50aXR5IjoxfV0sInNoaXBwaW5nX2FkZHJlc3MiOnsicmVjaXBpZW50X25hbWUiOiIqKioqKioqKioqIiwibGluZTEiOiIqKioqKioqKioqIiwiY2l0eSI6IioqKioqKioqKioiLCJzdGF0ZSI6IkRDIiwicG9zdGFsX2NvZGUiOiIqKioqKioqKioqIiwiY291bnRyeV9jb2RlIjoiVVMiLCJkZWZhdWx0X2FkZHJlc3MiOmZhbHNlLCJwcmVmZXJyZWRfYWRkcmVzcyI6ZmFsc2UsInByaW1hcnlfYWRkcmVzcyI6ZmFsc2UsImRpc2FibGVfZm9yX3RyYW5zYWN0aW9uIjpmYWxzZX19LCJyZWxhdGVkX3Jlc291cmNlcyI6W119XX0=')
+    decode_base64('TWF0Y2hlZCByZXNwb25zZSBkZWZpbml0aW9uOgp7CiAgInN0YXR1cyIgOiAyMDAsCiAgImJvZHkiIDogIntcInJpc2tfZGVjaXNpb25cIjp7XCJmdW5kaW5nX3NlbGVjdGlvbl9kZWNpc2lvbnNcIjpbe1wiZnVuZGluZ19zZWxlY3Rpb25faWRcIjpcImRlYTlhZjQzN2NhYTY4MTY1NGNkOTJkODMwODMzMzAxXCIsXCJmdW5kaW5nX3NlbGVjdGlvbl9kZWNpc2lvblwiOntcImRlY2lzaW9uX2NvZGVcIjpcIkFQUFJPVkVEXCJ9fV0sXCJmdW5kaW5nX2hhbmRsZVwiOlwiMzU5MTU1NTkxMDQxNzY2MTYzNjU4NjI1NDg5MTM2MjU2Njc1MDdcIixcInBhc3NfdGhyb3VnaFwiOltdLFwicGF5bWVudF9sZXZlbF9kZWNpc2lvblwiOntcImRlY2lzaW9uX2NvZGVcIjpcIkFQUFJPVkVEXCIsXCJyaXNrX2RlY2lzaW9uX3Njb3Jlc1wiOntcInJpc2tfbW9kZWxfc2NvcmVzXCI6W10sXCJyaXNrX2luZGljYXRvcnNcIjpbXX19LFwicmlza19wYXltZW50X2Fzc2Vzc21lbnRcIjp7XCJhc3Nlc3NtZW50XCI6e1wic2NvcmVzXCI6W3tcInNjb3JlXCI6XCIxMFwiLFwicmVhc29uc1wiOltcIkxPV19VTkFVVEhPUklaRURfUklTS1wiXX1dfX19LFwiY29tcGxpYW5jZV9kZWNpc2lvblwiOntcImZ1bmRpbmdfc2VsZWN0aW9uX2RlY2lzaW9uc1wiOlt7XCJkZWNpc2lvbl9jb2RlXCI6XCJBUFBST1ZFXCIsXCJmdW5kaW5nX3NlbGVjdGlvbl9pZFwiOlwiZGVhOWFmNDM3Y2FhNjgxNjU0Y2Q5MmQ4MzA4MzMzMDFcIn1dLFwiZnVuZGluZ19oYW5kbGVcIjpcIjM1OTE1NTU5MTA0MTc2NjE2MzY1ODYyNTQ4OTEzNjI1NjY3NTA3XCIsXCJkZWNpc2lvbnNcIjpbe1wiZGVjaXNpb25fY29kZVwiOlwiQVBQUk9WRVwiLFwicGF5bWVudF9hY3Rpb25zXCI6W10sXCJmbG93X2NvbnRpbmdlbmN5X2RldGFpbHNcIjpbXSxcInJlZmVyZW5jZV9pZFwiOlwiMzU5MTU1NTkxMDQxNzY2MTYzNjU4NjI1NDg5MTM2MjU2Njc1MDdcIixcImRlY2lzaW9uX3JlYXNvbnNcIjpbXSxcImRlY2lzaW9uX3JlYXNvbl9saXN0XCI6W10sXCJyZWZlcmVuY2VfdHlwZVwiOlwiVFJBTlNBQ1RJT05cIn0se1wiZGVjaXNpb25fY29kZVwiOlwiQVBQUk9WRVwiLFwicGF5bWVudF9hY3Rpb25zXCI6W10sXCJmbG93X2NvbnRpbmdlbmN5X2RldGFpbHNcIjpbXSxcInJlZmVyZW5jZV9pZFwiOlwiMzU5MTU1NTkxMDQxNzY2MTYzNjU4NjI1NDg5MTM2MjU2Njc1MDdcIixcImRlY2lzaW9uX3JlYXNvbnNcIjpbXSxcImRlY2lzaW9uX3JlYXNvbl9saXN0XCI6W10sXCJyZWZlcmVuY2VfdHlwZVwiOlwiRlVORElOR19TRUxFQ1RJT05cIn1dLFwidHJhbnNhY3Rpb25fbGV2ZWxfZGVjaXNpb25cIjpcIkFQUFJPVkVcIn0sXCJlcnJvcl9saXN0XCI6W119IiwKICAiaGVhZGVycyIgOiB7CiAgICAiQ29udGVudC1UeXBlIiA6ICJhcHBsaWNhdGlvbi9qc29uIgogIH0KfQoKUmVzcG9uc2U6CkhUVFAvMS4xIDIwMApDb250ZW50LVR5cGU6IFthcHBsaWNhdGlvbi9qc29uXQpNYXRjaGVkLVN0dWItSWQ6IFs1OTM2OGM2OS1mNzk4LTQ5MTctYTgyNC0zODcxODhmNTBhZmNdCgo=')
 
     #decode_base64('eyJhZGRyZXNzIjp7ImFkZHJlc3NfbGluZV8xIjoidmlhIGRlbCB2aWxsb25lIDU1IiwiYWRtaW5fYXJlYV8yIjoiUGlzdG9pYSIsImFkbWluX2FyZWFfMSI6IlBUIiwicG9zdGFsX2NvZGUiOiI1MTEwMCIsImNvdW50cnlfY29kZSI6IklUIn19')
     

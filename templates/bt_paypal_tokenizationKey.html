@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Braintree Playground – PayPal</title>
+    <link rel="stylesheet" href="/static/css/playground.css">
+  </head>
+  <body>
+    <main class="container">
+      <h1>PayPal</h1>
+      <section class="config">
+        <div class="field"><label>Amount <input id="amount" type="number" step="0.01" value="10.00"></label></div>
+        <div class="field"><label>Currency <input id="currency" type="text" value="USD"></label></div>
+        <div class="field"><label>Intent
+          <select id="intent">
+            <option value="capture" selected>capture</option>
+            <option value="authorize">authorize</option>
+          </select>
+        </label></div>
+        <div class="field"><label>Merchant Account ID <input id="maid" type="text" placeholder="optional" value="stevenustest_GBP"></label></div>
+        <div class="field"><label>Customer ID (for vault) <input id="customerId" type="text" placeholder="optional" value="demo-user-123"></label></div>
+        <div class="field"><label>Flow
+          <select id="flow">
+            <option value="checkout">Checkout</option>
+            <option value="vault">Vault only</option>
+            <option value="checkout-vault" selected>Checkout + Vault</option>
+            <option value="recurring">Recurring setup</option>
+          </select>
+        </label></div>
+        <div class="field"><label><input id="enablePayLater" type="checkbox" checked> Enable Pay Later</label></div>
+        <div class="field"><label><input id="requireShipping" type="checkbox"> Require Shipping Address</label></div>
+        <div class="field"><label>Shipping Preference
+          <select id="shippingPref">
+            <option value="GET_FROM_FILE">GET_FROM_FILE</option>
+            <option value="SET_PROVIDED_ADDRESS">SET_PROVIDED_ADDRESS</option>
+            <option value="NO_SHIPPING">NO_SHIPPING</option>
+          </select>
+        </label></div>
+        <div class="field"><label>Return URL <input id="returnUrl" type="text" value="/paypal"></label></div>
+        <div class="field"><label>Cancel URL <input id="cancelUrl" type="text" value="/paypal"></label></div>
+        <div class="field"><label><input id="device-data-required" type="checkbox"> Collect Device Data</label></div>
+        <div class="actions">
+          <button id="init">Initialize</button>
+        </div>
+      </section>
+
+      <section class="guidance">
+        <h2>Control Panel Requirements</h2>
+        <ul>
+          <li>Enable PayPal Checkout and connect a sandbox account.</li>
+          <li>Enable Pay Later offers and messaging.</li>
+          <li>Enable Vaulting and Recurring/Billing Agreements for the respective demos.</li>
+        </ul>
+      </section>
+
+      <section>
+        <div id="paypal-messages"></div>
+        <div id="paypal-button" style="margin-top:12px;"></div>
+      </section>
+
+      <section class="results">
+        <h2>Results</h2>
+        <pre id="log"></pre>
+      </section>
+    </main>
+
+    <script src="https://js.braintreegateway.com/web/3.129.1/js/client.min.js"></script>
+    <script src="https://js.braintreegateway.com/web/3.129.1/js/paypal-checkout.min.js"></script>
+    <script src="https://js.braintreegateway.com/web/3.129.1/js/data-collector.min.js"></script>
+    <script src="/static/js/playground_shared.js"></script>
+    <script src="/static/js/bt_paypal_tokenizationKey.js"></script>
+  </body>
+  </html>
+
+

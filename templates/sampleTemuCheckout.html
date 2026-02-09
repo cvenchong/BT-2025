@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -112,8 +113,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .form-group {
@@ -328,10 +336,13 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -345,7 +356,8 @@
 
         <div class="pci-warning">
             <h3>⚠️ PCI Compliance Required</h3>
-            <p>This implementation requires PCI DSS SAQ D compliance. Raw card data is transmitted to your server. Use Braintree Hosted Fields for reduced PCI scope (SAQ A).</p>
+            <p>This implementation requires PCI DSS SAQ D compliance. Raw card data is transmitted to your server. Use
+                Braintree Hosted Fields for reduced PCI scope (SAQ A).</p>
         </div>
 
         <div class="status-indicator">
@@ -355,10 +367,16 @@
 
         <div class="form-group">
             <label for="merchantAccountId">Merchant Account ID</label>
-            <input type="text" id="merchantAccountId" placeholder="leachong_EUR" value="leachong_EUR">
-            <button type="button" class="btn-secondary" onclick="reinitializeBraintree()" style="margin-top: 8px; width: 100%;">
+            <input type="text" id="merchantAccountId" placeholder="stevenustest" value="stevenustest">
+            <button type="button" class="btn-secondary" onclick="reinitializeBraintree()"
+                style="margin-top: 8px; width: 100%;">
                 Reinitialize with New MAID
             </button>
+        </div>
+
+        <div class="form-group">
+            <label for="customerId">Customer ID (for vaulted flow)</label>
+            <input type="text" id="customerId" placeholder="Optional - e.g. 56645950016" value="">
         </div>
 
         <div class="mode-toggle">
@@ -373,14 +391,23 @@
         </div>
 
         <form id="cardForm">
+            <!-- Unified Amount & Currency settings (applies to all flows) -->
+            <div class="form-row" id="unifiedSettings">
+                <div class="form-group">
+                    <label for="amount">Amount</label>
+                    <input type="text" id="amount" placeholder="2099.00" value="2099.00">
+                </div>
+                <div class="form-group">
+                    <label for="currency">Currency</label>
+                    <input type="text" id="currency" placeholder="EUR" value="EUR">
+                </div>
+            </div>
             <div class="three-ds-section" id="threeDSSection">
                 <h3>🔒 3D Secure Flow</h3>
-                <p style="font-size: 13px; color: #2d5016; margin-bottom: 12px;">This mode will tokenize the card, perform 3DS verification, and process a payment.</p>
-                
-                <div class="form-group">
-                    <label for="amount">Payment Amount (EUR)</label>
-                    <input type="text" id="amount" placeholder="10.00" value="10.00">
-                </div>
+                <p style="font-size: 13px; color: #2d5016; margin-bottom: 12px;">This mode will tokenize the card,
+                    perform 3DS verification, and process a payment.</p>
+
+
 
                 <div class="form-group">
                     <label for="email">Email</label>
@@ -421,6 +448,14 @@
                 </label>
             </div>
 
+            <!-- Save card for future purchases -->
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="saveCard">
+                    Save this card for future purchases
+                </label>
+            </div>
+
             <div class="address-fields" id="addressFields">
                 <div class="form-group">
                     <label for="postalCode">Postal Code</label>
@@ -453,10 +488,49 @@
                 <button type="submit" class="btn-primary" id="submitBtn">
                     Tokenize Card
                 </button>
+                <button type="button" class="btn-primary" id="submitAndChargeExemptionBtn"
+                    onclick="tokenizeAndChargeWithExemption()" style="background:#3b82f6">
+                    Tokenize + Charge (SCA Exemption)
+                </button>
             </div>
         </form>
 
         <div id="result"></div>
+
+        <!-- Vaulted Cards Flow -->
+        <div class="header" style="margin-top:32px;">
+            <h1>
+                Vaulted Card Flow
+                <span class="badge">GraphQL</span>
+                <span class="badge three-ds">3DS</span>
+            </h1>
+            <p>Select a vaulted card and charge with SCA logic or 3DS.</p>
+        </div>
+        
+        <div class="pci-warning">
+            <h3>⚠️ Client Token Requirement</h3>
+            <p>To trigger 3DS with a vaulted card, it is important to have client token initialized with customer id. If not, you will face error 94501 payment method nonce not found when triggering 3ds. </p>
+        </div>
+
+
+        <div class="form-group">
+            <button type="button" class="btn-secondary" onclick="fetchVaultedCards()">Fetch Vaulted Cards</button>
+        </div>
+
+        <div id="vaultedCardsContainer" class="address-fields" style="display:block">
+            <div id="vaultedCardsList">No vaulted cards loaded.</div>
+        </div>
+
+
+        <div class="form-group">
+            <label for="vaultEmail">Email</label>
+            <input type="email" id="vaultEmail" placeholder="customer@example.com">
+        </div>
+        <div class="button-group">
+            <button type="button" class="btn-primary" style="background:#3b82f6"
+                onclick="chargeVaultedWithExemption()">Charge Vaulted With Exemption</button>
+            <button type="button" class="btn-primary" onclick="threeDSThenChargeVaulted()">3DS Then Charge Vaulted</button>
+        </div>
     </div>
 
     <!-- Braintree Web SDK -->
@@ -471,6 +545,11 @@
         let clientToken = null;
         let browserInformation = null;
         let userIpAddress = null;
+        let descriptor = {
+            //name: "My Company*1234567890",
+            //phone: "123-456-7890",
+            url: "www.temu.com" // Url must be 13 characters or shorter and can only contain letters, numbers, slashes and periods.
+        };
 
         // Function to collect browser information for 3DS
         function collectBrowserInformation() {
@@ -485,7 +564,7 @@
                 userAgent: navigator.userAgent,
                 javascriptEnabled: true
             };
-            
+
             console.log('Browser information collected:', browserInfo);
             return browserInfo;
         }
@@ -520,7 +599,7 @@
                     countryCode: document.getElementById('countryCode').value
                 }
             };
-            
+
             console.log('Transaction information object:', transactionInfo);
             return transactionInfo;
         }
@@ -539,7 +618,7 @@
                     countryCode: document.getElementById('countryCode').value
                 }
             };
-            
+
             console.log('cardHolderInfo object:', cardHolderInfo);
             return cardHolderInfo;
         }
@@ -549,14 +628,15 @@
             try {
                 // Get merchant account ID from input field
                 const merchantAccountId = document.getElementById('merchantAccountId').value || 'leachong_EUR';
-                
+                const customerId = document.getElementById('customerId').value || null;
+
                 // Get client token from server with merchant account ID
-                const tokenResponse = await fetch('/braintree/sdk/auth/client', {
+                const tokenResponse = await fetch('/api/create-client-token-graphql', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ merchantAccountId: merchantAccountId }) 
+                    body: JSON.stringify({ merchantAccountId: merchantAccountId, customerId: customerId })
                 });
                 const tokenData = await tokenResponse.json();
                 console.log('Received client token:', tokenData);
@@ -573,23 +653,40 @@
                 });
 
                 deviceData = dataCollectorInstance.deviceData;
-                
+
                 // Initialize 3D Secure
                 threeDSecureInstance = await braintree.threeDSecure.create({
                     client: clientInstance,
                     version: 2 // Use 3DS 2.0
                 });
-                
+
+                threeDSecureInstance.on('customer-canceled', function () {
+                    // the customer canceled the 3D Secure challenge
+                    console.log('3D Secure challenge was canceled by the customer.');
+                });
+
+                threeDSecureInstance.on('authentication-modal-render', function () {
+                    // the modal was rendered, presenting the authentication form to the customer
+                    console.log('3D Secure authentication modal rendered.');
+                });
+
+                threeDSecureInstance.on('lookup-complete', function (data, next) {
+                    // inspect the data
+                    console.log('3D Secure lookup complete:', data);
+                    // call next when ready to proceed with the challenge
+                    next();
+                });
+
                 // Update status
                 document.getElementById('deviceDataStatus').classList.add('active');
                 document.getElementById('deviceDataText').textContent = 'Device data collected ✓';
                 console.log('Device data:', deviceData);
-                
+
                 console.log('Braintree initialized successfully');
 
                 // Collect browser information after Braintree initialization
                 browserInformation = collectBrowserInformation();
-                
+
                 // Fetch user's IP address
                 userIpAddress = await getUserIpAddress();
 
@@ -606,10 +703,10 @@
         async function reinitializeBraintree() {
             const statusDot = document.getElementById('deviceDataStatus');
             const statusText = document.getElementById('deviceDataText');
-            
+
             statusDot.classList.remove('active');
             statusText.textContent = 'Reinitializing...';
-            
+
             try {
                 await initializeBraintree();
                 statusText.textContent = 'Device data collected ✓';
@@ -619,12 +716,259 @@
             }
         }
 
+        // Helpers for vaulted flow UI
+        function renderVaultedCards(cards) {
+            const list = document.getElementById('vaultedCardsList');
+            if (!cards || cards.length === 0) {
+                list.innerHTML = '<div class="result info"><div class="result-title">No vaulted cards found.</div></div>';
+                return;
+            }
+            const html = cards.map((c, idx) => {
+                const label = `${c.brandCode || c.type} •••• ${c.last4 || ''}  (exp ${c.expirationMonth || '--'}/${c.expirationYear || '--'}) (pmtId: ${c.id || ''}) (uniqueNumberIdentifier: ${c.uniqueNumberIdentifier || ''})`;
+                return `
+                    <label class="checkbox-label" style="margin:6px 0;">
+                        <input type="radio" name="vaultedCard" value="${c.id}" data-bin="${c.bin || ''}" ${idx === 0 ? 'checked' : ''} />
+                        ${label}
+                    </label>`;
+            }).join('');
+            list.innerHTML = html;
+        }
+
+        async function fetchVaultedCards() {
+            const customerId = document.getElementById('customerId').value.trim();
+            if (!customerId) {
+                showResult('error', 'Missing Customer ID', 'Enter a customerId to fetch vaulted cards.');
+                return;
+            }
+            try {
+                const res = await fetch('/api/get-vaulted-payment-methods', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customerId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    renderVaultedCards(data.paymentMethods);
+                    showResult('info', 'Vaulted cards loaded', { count: data.paymentMethods.length });
+                } else {
+                    showResult('error', 'Failed to load vaulted cards', data);
+                }
+            } catch (e) {
+                showResult('error', 'Error loading vaulted cards', e.message);
+            }
+        }
+
+        function getSelectedVaultedCard() {
+            const selected = document.querySelector('input[name="vaultedCard"]:checked');
+            if (!selected) return null;
+            return { id: selected.value, bin: selected.getAttribute('data-bin') || '' };
+        }
+
+        async function check3DSRequirement(amount, currency, paymentMethodId, bin) {
+            const res = await fetch('/api/check-3ds-requirement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount, currency, paymentMethodId, bin })
+            });
+            return res.json();
+        }
+
+        async function perform3DSLookupAndVerify({ paymentMethodId, bin, amount, email }) {
+            // paymentMethodId: nonce of the card to be verified
+            if (!threeDSecureInstance) throw new Error('3DS not initialized');
+
+            const inputInfo = getCardholderInformation().billingAddress;
+            const params = {
+                amount: amount,
+                nonce: paymentMethodId,
+                bin: bin,
+                email: email,
+                challengeRequested: true
+            };
+            console.log('Performing 3D Secure lookup and verification, params:', params);
+
+            const verificationResult = await threeDSecureInstance.verifyCard(params);
+            console.log('3D Secure verification result:', verificationResult);
+            return verificationResult.nonce;
+        }
+
+        async function chargeWithExemption({ paymentMethodId, amount, currency, scaExemption, saveCard, customerId}) {
+            console.log('Charging with exemption:', { paymentMethodId, amount, currency, scaExemption });
+            const merchantAccountId = document.getElementById('merchantAccountId').value || 'leachong_EUR';
+            const orderId = `ORDER-${Date.now()}`;
+            const res = await fetch('/api/charge-with-exemption', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    paymentMethodId,
+                    amount,
+                    currency,
+                    scaExemption,
+                    merchantAccountId,
+                    orderId,
+                    deviceData,
+                    saveCard: saveCard,
+                    customerId: customerId,
+                    descriptor: descriptor
+                })
+            });
+            return res.json();
+        }
+
+        async function charge3DSNonce({ paymentMethodId, amount }) {
+            console.log('Charging 3DS nonce params:', { paymentMethodId, amount });
+            const res = await fetch('/api/charge-with-threed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    paymentMethodId,
+                    amount,
+                    deviceData,
+                    merchantAccountId: document.getElementById('merchantAccountId').value || 'leachong_EUR',
+                    orderId: `ORDER-${Date.now()}`,
+                    saveCard: !!document.getElementById('saveCard')?.checked,
+                    customerId: document.getElementById('customerId').value || null,
+                    descriptor: descriptor
+                })
+            });
+            return res.json();
+        }
+
+        // Vaulted: Charge with exemption path
+        async function chargeVaultedWithExemption() {
+            try {
+                console.log('Starting chargeVaultedWithExemption flow...');
+                const card = getSelectedVaultedCard();
+                if (!card) { showResult('error', 'No vaulted card selected', 'Choose a vaulted card first.'); return; }
+                const amount = document.getElementById('amount').value || '2099.00';
+                const currency = (document.getElementById('currency').value || 'EUR').toUpperCase();
+
+                const check = await check3DSRequirement(amount, currency, card.id, card.bin);
+                if (!check.success) { showResult('error', '3DS requirement check failed', check); return; }
+
+                if (check.requires3DS) {
+                    console.log('3DS verification required. Proceeding with 3DS verification...');
+                    showResult('info', '3DS Required', 'Proceeding with 3DS verification...');
+                    const upgradedNonce = await perform3DSLookupAndVerify({ paymentMethodId: card.id, bin: card.bin, amount, email: document.getElementById('vaultEmail').value });
+                    const charge = await charge3DSNonce({ paymentMethodId: upgradedNonce, amount });
+                    if (charge.success) showResult('success', 'Payment Successful with 3DS', charge);
+                    else showResult('error', 'Payment Failed', charge);
+                    return;
+                }
+
+                const charge = await chargeWithExemption({ paymentMethodId: card.id, amount, currency, scaExemption: check.scaExemption, saveCard: false, customerId: null });
+                console.log('Charge with exemption response:', charge);
+                if (charge.success) {
+                    showResult('success', `Payment Successful with ${check.scaExemption} exemption`, charge);
+                    console.log('Charge successful:', charge);
+                } else if (charge.requires3DS || charge.declineCode === '2099') {
+                    // sandbox simulates 2099 for testing will be using amount 2099. Change amount to avoid further 2099 declines in sandbox
+                    showResult('info', 'SCA required by processor (2099)', 'Retrying with 3DS...');
+                    var amount2 = '20.00'; // change amount to avoid further 2099 declines in sandbox
+                    console.log('SCA required by processor (2099). Retrying with 3DS... Amount changed to', amount2);
+
+                    const upgradedNonce2 = await perform3DSLookupAndVerify({ paymentMethodId: card.id, bin: card.bin, amount: amount2, email: document.getElementById('vaultEmail').value });
+                    const charge2 = await charge3DSNonce({ paymentMethodId: upgradedNonce, amount2 });
+                    if (charge2.success) showResult('success', 'Payment Successful after 3DS', charge2);
+                    else showResult('error', 'Payment Failed after 3DS', charge2);
+                } else {
+                    showResult('error', 'Payment Failed', charge);
+                }
+            } catch (e) {
+                showResult('error', 'Error', e.message);
+            }
+        }
+
+        // Vaulted: 3DS then charge path
+        async function threeDSThenChargeVaulted() {
+            try {
+                const card = getSelectedVaultedCard();
+                if (!card) { showResult('error', 'No vaulted card selected', 'Choose a vaulted card first.'); return; }
+                console.log('Selected vaulted card for 3DS charge:', card);
+                const amount = document.getElementById('amount').value || '2099.00';
+                const upgradedNonce = await perform3DSLookupAndVerify({ paymentMethodId: card.id, bin: card.bin, amount, email: document.getElementById('vaultEmail').value });
+                const charge = await charge3DSNonce({ paymentMethodId: upgradedNonce, amount });
+                if (charge.success) showResult('success', 'Payment Successful with 3DS', charge);
+                else showResult('error', 'Payment Failed', charge);
+            } catch (e) {
+                showResult('error', 'Error', e.message);
+            }
+        }
+
+        // Non-vaulted: Tokenize + charge with SCA exemption (auto fallback to 3DS on 2099)
+        async function tokenizeAndChargeWithExemption() {
+            try {
+                const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+                const expirationDate = document.getElementById('expirationDate').value;
+                const cvv = document.getElementById('cvv').value;
+                const cardholderName = document.getElementById('cardholderName').value;
+                const amount = document.getElementById('amount').value || '2099.00';
+                const currency = (document.getElementById('currency').value || 'EUR').toUpperCase(); // unified setting
+
+                const payload = { cardNumber, expirationDate, cvv, cardholderName };
+                const tRes = await fetch('/api/tokenize-card-graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const tData = await tRes.json();
+                console.log('Tokenized card:', tData);
+
+                if (!tData.success) { showResult('error', 'Tokenization Failed', tData); return; }
+
+                const paymentMethodId = tData.nonce;
+                const bin = tData.bin;
+                const check = await check3DSRequirement(amount, currency, paymentMethodId, bin);
+                if (!check.success) { showResult('error', '3DS requirement check failed', check); return; }
+
+                if (check.requires3DS) {
+                    console.log('3DS verification required. Proceeding with 3DS verification...');
+                    showResult('info', '3DS Required', 'Proceeding with 3DS verification...');
+                    const upgradedNonce = await perform3DSLookupAndVerify({ paymentMethodId, bin, amount, email: document.getElementById('email').value });
+                    const charge = await charge3DSNonce({ paymentMethodId: upgradedNonce, amount });
+                    if (charge.success) showResult('success', 'Payment Successful with 3DS', charge); else showResult('error', 'Payment Failed', charge);
+                    return;
+                }
+
+                const charge = await chargeWithExemption({ paymentMethodId, amount, currency, scaExemption: check.scaExemption, saveCard: document.getElementById('saveCard').checked, customerId: document.getElementById('customerId').value || null });
+                console.log('Charge with exemption response:', charge);
+                if (charge.success) {
+                    showResult('success', `Payment Successful with ${check.scaExemption} exemption`, charge);
+                    console.log('Charge successful:', charge);
+                } else if (charge.requires3DS || charge.declineCode === '2099') {
+                    // sandbox simulates 2099 for testing will be using amount 2099. Change amount to avoid further 2099 declines in sandbox
+                    showResult('info', 'SCA required by processor (2099)', 'Retrying with 3DS...');
+                    var amount2 = '20.00'; // change amount to avoid further 2099 declines in sandbox
+                    console.log('SCA required by processor (2099). Retrying with 3DS... Amount changed to', amount2);
+
+                    var tRes2 = await fetch('/api/tokenize-card-graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    var tData2 = await tRes2.json();
+                    console.log('Tokenized card:', tData2);
+                    var paymentMethodId2 = tData2.nonce;
+                    var bin2 = tData2.bin;
+
+                    const upgradedNonce2 = await perform3DSLookupAndVerify({
+                        paymentMethodId: paymentMethodId2,
+                        bin: bin2,
+                        amount: amount2,
+                        email: document.getElementById('email').value
+                    });
+
+
+                    const charge2 = await charge3DSNonce({ paymentMethodId: upgradedNonce2, amount: amount2 });
+                    console.log('Charge after 3DS response:', charge2);
+                    if (charge2.success) showResult('success', 'Payment Successful after 3DS', charge2); 
+                    else showResult('error', 'Payment Failed after 3DS', charge2);
+                } else {
+                    showResult('error', 'Payment Failed', charge);
+                }
+            } catch (e) {
+                showResult('error', 'Error', e.message);
+            }
+        }
+
         // Mode toggle
         document.querySelectorAll('input[name="mode"]').forEach(radio => {
-            radio.addEventListener('change', function() {
+            radio.addEventListener('change', function () {
                 const threeDSSection = document.getElementById('threeDSSection');
                 const submitBtn = document.getElementById('submitBtn');
-                
+
                 if (this.value === '3ds') {
                     threeDSSection.classList.add('show');
                     submitBtn.textContent = 'Process Payment with 3DS';
@@ -636,7 +980,7 @@
         });
 
         // Toggle address fields
-        document.getElementById('includeAvs').addEventListener('change', function(e) {
+        document.getElementById('includeAvs').addEventListener('change', function (e) {
             const addressFields = document.getElementById('addressFields');
             if (e.target.checked) {
                 addressFields.classList.add('show');
@@ -652,14 +996,14 @@
         });
 
         // Format card number with spaces
-        document.getElementById('cardNumber').addEventListener('input', function(e) {
+        document.getElementById('cardNumber').addEventListener('input', function (e) {
             let value = e.target.value.replace(/\s/g, '');
             let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
             e.target.value = formattedValue;
         });
 
         // Format expiration date
-        document.getElementById('expirationDate').addEventListener('input', function(e) {
+        document.getElementById('expirationDate').addEventListener('input', function (e) {
             let value = e.target.value.replace(/\D/g, '');
             if (value.length >= 2) {
                 value = value.slice(0, 2) + '/' + value.slice(2, 4);
@@ -668,22 +1012,24 @@
         });
 
         // CVV numeric only
-        document.getElementById('cvv').addEventListener('input', function(e) {
+        document.getElementById('cvv').addEventListener('input', function (e) {
             e.target.value = e.target.value.replace(/\D/g, '');
         });
 
         // Pre-fill test data
         function prefillTestData() {
-            document.getElementById('cardNumber').value = '4111 1111 1111 1111';
-            
+            //document.getElementById('cardNumber').value = '4111 1111 1111 1111';
+            document.getElementById('cardNumber').value = '4000 0000 0000 2024';
+
+
             const now = new Date();
             const futureMonth = String(now.getMonth() + 1).padStart(2, '0');
             const futureYear = String(now.getFullYear() + 2).slice(-2);
             document.getElementById('expirationDate').value = `${futureMonth}/${futureYear}`;
-            
+
             document.getElementById('cvv').value = '123';
             document.getElementById('cardholderName').value = 'Steven Chong';
-            document.getElementById('amount').value = '10.00';
+            document.getElementById('amount').value = '30.00';
             document.getElementById('email').value = 'test@example.com';
             document.getElementById('phone').value = '+1 555 123 4567';
         }
@@ -692,19 +1038,19 @@
         function showResult(type, title, details) {
             const resultDiv = document.getElementById('result');
             resultDiv.className = `result ${type}`;
-            
+
             let icon = '';
             if (type === 'success') icon = '✓';
             else if (type === 'error') icon = '✗';
             else if (type === 'info') icon = 'ℹ';
-            
+
             let detailsHtml = '';
             if (typeof details === 'object') {
                 detailsHtml = `<div class="result-details">${JSON.stringify(details, null, 2)}</div>`;
             } else if (details) {
                 detailsHtml = `<div class="result-details">${details}</div>`;
             }
-            
+
             resultDiv.innerHTML = `
                 <div class="result-title">${icon} ${title}</div>
                 ${detailsHtml}
@@ -713,7 +1059,7 @@
         }
 
         // Form submission
-        document.getElementById('cardForm').addEventListener('submit', async function(e) {
+        document.getElementById('cardForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
             const submitBtn = document.getElementById('submitBtn');
@@ -836,7 +1182,7 @@
 
                     const cardHolderInfo = getCardholderInformation();
 
-                    const requestedExemptionType = null ;//LOW_VALUE, SECURE_CORPORATE, TRANSACTION_RISK_ANALYSIS, TRUSTED_BENEFICIARY
+                    const requestedExemptionTypes = null; // e.g., LOW_VALUE, SECURE_CORPORATE, TRANSACTION_RISK_ANALYSIS, TRUSTED_BENEFICIARY
 
                     const lookupPayload = {
                         nonce: paymentMethodNonce,
@@ -844,9 +1190,9 @@
                         amount: amount,
                         email: email,
                         transactionInformation: transactionInformation,
-                        prepareLookupResult: prepareLookupResult,
+                        prepareLookupResult: JSON.stringify(prepareLookupResult),
                         cardHolderInfo: cardHolderInfo,
-                        requestedExemptionType: requestedExemptionType,
+                        requestedExemptionTypes: requestedExemptionTypes,
                         requestAuthenticationChallenge: true,
                         merchantAccountId: document.getElementById('merchantAccountId').value || 'leachong_EUR'
                     };
@@ -876,7 +1222,7 @@
                         amount: amount,
                         email: email,
                         billingAddress: prepareLookupPayload.billingAddress,
-                        onLookupComplete: function(data, next) {
+                        onLookupComplete: function (data, next) {
                             // Lookup already completed via GraphQL, continue
                             next();
                         }
@@ -923,4 +1269,5 @@
         });
     </script>
 </body>
+
 </html>

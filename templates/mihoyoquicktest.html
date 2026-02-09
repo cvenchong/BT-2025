@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Payment with Smart Payment Buttons</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .trigger-button {
+            background: #fff;
+            color: #333;
+            border: none;
+            padding: 16px 48px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .trigger-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 720px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .close-button:hover {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .modal-body {
+            padding: 28px;
+        }
+
+        .item-section {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .item-description {
+            color: #6b7280;
+            font-size: 14px;
+            flex: 1;
+            padding-right: 16px;
+        }
+
+        .item-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ff6b35;
+        }
+
+        .payment-section-title {
+            font-size: 14px;
+            color: #374151;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .payment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .payment-option {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #fff;
+        }
+
+        .payment-option:hover {
+            border-color: #cbd5e1;
+            background: #f9fafb;
+        }
+
+        .payment-option.selected {
+            border-color: #0070ba;
+            background: #eff6ff;
+        }
+
+        .payment-option input[type="radio"] {
+            margin-right: 12px;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: #0070ba;
+        }
+
+        .payment-mark {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .payment-button-container {
+            margin-top: 24px;
+            min-height: 45px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #6b7280;
+            padding: 12px;
+        }
+
+        .checkbox-section {
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-section input[type="checkbox"] {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-section label {
+            font-size: 14px;
+            color: #374151;
+            cursor: pointer;
+        }
+
+        .pay-button {
+            width: 100%;
+            padding: 16px;
+            background: #00c3ff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 20px;
+        }
+
+        .pay-button:hover {
+            background: #00b0e6;
+        }
+
+        .pay-button:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 640px) {
+            .modal {
+                width: 95%;
+                margin: 10px;
+            }
+            
+            .item-section {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button class="trigger-button" id="openModalBtn">Open Payment Modal</button>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">To pay</h2>
+                <button class="close-button" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="item-section">
+                    <div class="item-description">
+                        commodity : I am a commodity commodity commodity commodity...
+                    </div>
+                    <div class="item-amount">USD 60.00</div>
+                </div>
+
+                <div class="payment-section-title">Select Payment Method</div>
+
+                <div class="payment-options">
+                    <div class="payment-option selected" data-funding="card">
+                        <input type="radio" name="paymentMethod" value="card" checked>
+                        <div class="payment-mark">
+                            <span style="color: #6b7280; font-size: 14px;">💳 Credit card / Debit card</span>
+                        </div>
+                    </div>
+
+                    <div class="payment-option" data-funding="paypal">
+                        <input type="radio" name="paymentMethod" value="paypal">
+                        <div class="payment-mark" id="paypal-mark"></div>
+                    </div>
+
+                    <div class="payment-option" data-funding="paylater">
+                        <input type="radio" name="paymentMethod" value="paylater">
+                        <div class="payment-mark" id="paylater-mark"></div>
+                    </div>
+
+                    <div class="payment-option" data-funding="venmo">
+                        <input type="radio" name="paymentMethod" value="venmo">
+                        <div class="payment-mark" id="venmo-mark"></div>
+                    </div>
+                </div>
+
+                <div class="checkbox-section">
+                    <input type="checkbox" id="savePayPal">
+                    <label for="savePayPal">Save this PayPal account for future purchases.</label>
+                </div>
+
+                <div class="payment-button-container" id="paymentButtonContainer">
+                    <div class="loading">Loading payment options...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // PayPal Client ID - Replace with your actual client ID
+        //rcvr-us-ppcp-1@gmail.com - US Merchant account
+        const CLIENT_ID = 'AfTNXk4kvRIFYs2anTBbdf9__03iuJIQodXxCjtGdQQR-oLKaeBt26nz8kSbq4nw0zoHHYTcVw8OAMeX';
+        const buyerCountry = 'US';
+        
+        let selectedFundingSource = 'card';
+        let paypalSDKLoaded = false;
+        let currentButtonInstance = null;
+
+        // Modal controls
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modal = document.getElementById('modal');
+
+        openModalBtn.addEventListener('click', () => {
+            modalOverlay.classList.add('active');
+            if (!paypalSDKLoaded) {
+                loadPayPalSDK();
+            }
+        });
+
+        closeModalBtn.addEventListener('click', closeModal);
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+                closeModal();
+            }
+        });
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+        }
+
+        // Payment option selection
+        const paymentOptions = document.querySelectorAll('.payment-option');
+        paymentOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected class from all options
+                paymentOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Add selected class to clicked option
+                this.classList.add('selected');
+                
+                // Check the radio button
+                const radio = this.querySelector('input[type="radio"]');
+                radio.checked = true;
+                
+                // Update selected funding source
+                selectedFundingSource = this.dataset.funding;
+                
+                // Render button for selected funding source
+                renderPaymentButton();
+            });
+        });
+
+        // Load PayPal SDK
+        async function loadPayPalSDK() {
+            if (paypalSDKLoaded) {
+                renderPaymentButton();
+                return;
+            }
+
+
+            const script = document.createElement('script');
+            script.src = `https://www.paypal.com/sdk/js?client-id=${CLIENT_ID}&components=buttons,marks,funding-eligibility&enable-funding=venmo,paylater,card&currency=USD&buyer-country=${buyerCountry}`;
+            script.onload = () => {
+                console.log('PayPal SDK loaded');
+                paypalSDKLoaded = true;
+                
+                // Render marks for PayPal and Pay Later
+                if (window.paypal) {
+                    // Render PayPal mark
+                    if (window.paypal.Marks && window.paypal.isFundingEligible(window.paypal.FUNDING.PAYPAL)) {
+                        console.log('window.paypal.isFundingEligible(window.paypal.FUNDING.PAYPAL):', window.paypal.isFundingEligible(window.paypal.FUNDING.PAYPAL));
+                        window.paypal.Marks({
+                            fundingSource: window.paypal.FUNDING.PAYPAL
+                        }).render('#paypal-mark');
+                    }
+                    
+                    // Render Pay Later mark
+                    if (window.paypal.Marks && window.paypal.isFundingEligible(window.paypal.FUNDING.PAYLATER)) {
+                        console.log('window.paypal.isFundingEligible(window.paypal.FUNDING.PAYLATER):', window.paypal.isFundingEligible(window.paypal.FUNDING.PAYLATER));
+                        window.paypal.Marks({
+                            fundingSource: window.paypal.FUNDING.PAYLATER
+                        }).render('#paylater-mark');
+                    }
+                    
+                    // Render Venmo mark
+                    if (window.paypal.Marks && window.paypal.isFundingEligible(window.paypal.FUNDING.VENMO)) {
+                        console.log('window.paypal.isFundingEligible(window.paypal.FUNDING.VENMO):', window.paypal.isFundingEligible(window.paypal.FUNDING.VENMO));
+                        window.paypal.Marks({
+                            fundingSource: window.paypal.FUNDING.VENMO
+                        }).render('#venmo-mark');
+                    }
+                    
+                    // Render initial button (card)
+                    renderPaymentButton();
+                }
+            };
+            script.onerror = () => {
+                console.error('Failed to load PayPal SDK');
+                document.getElementById('paymentButtonContainer').innerHTML = 
+                    '<div style="color:#ef4444;text-align:center;">Failed to load payment options</div>';
+            };
+            document.head.appendChild(script);
+        }
+
+        // Sample order objects
+        const oneTimeSampleOrderRequest = {
+            "application_context": {
+                "brand_name": "Cognosphere Pte Ltd",
+                "shipping_preference": "NO_SHIPPING",
+                "return_url": "https://example.com/returnUrl",
+                "cancel_url": "https://example.com/cancelUrl",
+                "user_action": "PAY_NOW"
+            },
+            "intent": "CAPTURE",
+            "payment_source": {
+                "paypal": {
+                    "attributes": {
+                        "customer": {
+                            "id": "00000001"
+                        }
+                    }
+                }
+            },
+            "purchase_units": [
+                {
+                    "amount": {
+                        "currency_code": "USD",
+                        "value": "610"
+                    },
+                    "custom_id": "hk4e_global",
+                    "invoice_id": "random invoice",
+                    "description": "item desc abcdefg"
+                }
+            ]
+        };
+
+        const savePPSampleOrderRequest = {
+            "application_context": {
+                "brand_name": "Cognosphere Pte Ltd",
+                "shipping_preference": "NO_SHIPPING",
+                "return_url": "https://example.com/returnUrl",
+                "cancel_url": "https://example.com/cancelUrl",
+                "user_action": "PAY_NOW"
+            },
+            "intent": "CAPTURE",
+            "payment_source": {
+                "paypal": {
+                    "attributes": {
+                        "customer": {
+                            "id": "00000001"
+                        },
+                        "vault": {
+                            "confirm_payment_token": "ON_ORDER_COMPLETION",
+                            "customer_type": "CONSUMER",
+                            "usage_type": "MERCHANT"
+                        }
+                    }
+                }
+            },
+            "purchase_units": [
+                {
+                    "amount": {
+                        "currency_code": "USD",
+                        "value": "148"
+                    },
+                    "custom_id": "hkrpg_global",
+                    "invoice_id": Date.now().toString(),
+                    "description": "item desc abcdefg"
+                }
+            ]
+        };
+
+        const subsequentPaymentSampleRequest = {
+            "application_context": {
+                "brand_name": "Cognosphere Pte Ltd",
+                "shipping_preference": "NO_SHIPPING",
+                "return_url": "https://example.com/returnUrl",
+                "cancel_url": "https://example.com/cancelUrl",
+                "user_action": "PAY_NOW"
+            },
+            "intent": "CAPTURE",
+            "payment_source": {
+                "token": {
+                    "id": "xxxxxx",
+                    "type": "PAYMENT_METHOD_TOKEN"
+                }
+            },
+            "purchase_units": [
+                {
+                    "amount": {
+                        "currency_code": "USD",
+                        "value": "0.99"
+                    },
+                    "custom_id": "hk4e_global",
+                    "invoice_id": "2001509184964702208",
+                    "description": "item desc abcd"
+                }
+            ]
+        };
+
+        // Function to build sample order based on payment type
+        function buildSampleOrder(isSubsequentPayment=false, isSavePPFlow=false) {
+            if (isSubsequentPayment) {
+                // Return subsequent payment request with token
+                return { ...subsequentPaymentSampleRequest };
+            } else if (isSavePPFlow) {
+                // Return save PayPal flow with vault attributes
+                const order = { ...savePPSampleOrderRequest };
+                // Update timestamp for invoice_id
+                order.purchase_units[0].invoice_id = Date.now().toString();
+                return order;
+            } else {
+                // Return one-time payment request
+                return { ...oneTimeSampleOrderRequest };
+            }
+        }
+
+        // Create order
+        function createOrder() {
+            // Check if checkbox is checked to determine flow type
+            const savePayPalCheckbox = document.getElementById('savePayPal');
+            const isSavePPFlow = savePayPalCheckbox.checked && (selectedFundingSource === 'paypal');
+            
+            // Build the appropriate order request
+            const orderData = buildSampleOrder(false, isSavePPFlow);
+            
+            console.log('Creating order with data:', orderData);
+
+            return fetch('/create_pp_order_v2_raw_payload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Order created:', data);
+                return data.id;
+            })
+            .catch(error => {
+                console.error('Error creating order:', error);
+                alert('Failed to create order. Please try again.');
+                throw error;
+            });
+        }
+
+        // Handle approval
+        function onApprove(data) {
+            console.log('Payment approved:', data);
+            alert(`Payment successful! Order ID: ${data.orderID}`);
+            closeModal();
+        }
+
+        // Handle cancellation
+        function onCancel(data) {
+            console.log('Payment cancelled:', data);
+            alert('Payment was cancelled.');
+        }
+
+        // Handle error
+        function onError(err) {
+            console.error('Payment error:', err);
+            alert('An error occurred during payment. Please try again.');
+        }
+
+        // Render payment button based on selected funding source
+        async function renderPaymentButton() {
+            const container = document.getElementById('paymentButtonContainer');
+
+            if (!window.paypal) {
+                return;
+            }
+
+            // Close any existing button instance before creating a new one
+            if (currentButtonInstance) {
+                try {
+                    currentButtonInstance.close();
+                } catch (e) {
+                    console.log('Error closing previous button instance:', e);
+                }
+                currentButtonInstance = null;
+            }
+
+            // Clear the container and show loading
+            container.innerHTML = '<div class="loading">Loading payment button...</div>';
+
+            // Small delay to ensure DOM is ready
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            let fundingSource;
+            switch(selectedFundingSource) {
+                case 'card':
+                    fundingSource = window.paypal.FUNDING.CARD;
+                    break;
+                case 'paypal':
+                    fundingSource = window.paypal.FUNDING.PAYPAL;
+                    break;
+                case 'paylater':
+                    fundingSource = window.paypal.FUNDING.PAYLATER;
+                    break;
+                case 'venmo':
+                    fundingSource = window.paypal.FUNDING.VENMO;
+                    break;
+                default:
+                    fundingSource = window.paypal.FUNDING.CARD;
+            }
+
+            // Check if funding source is eligible
+            if (!window.paypal.isFundingEligible(fundingSource)) {
+                container.innerHTML = `<div style="color:#f59e0b;text-align:center;padding:12px;">This payment method is not available. Please select another option.</div>`;
+                return;
+            }
+
+            // Clear container before rendering
+            container.innerHTML = '';
+
+            // Create and store the button instance
+            currentButtonInstance = window.paypal.Buttons({
+                fundingSource: fundingSource,
+                createOrder: createOrder,
+                onApprove: onApprove,
+                onCancel: onCancel,
+                onError: onError,
+                style: {
+                    layout: 'vertical',
+                    shape: 'rect',
+                    height: 45
+                }
+            });
+
+            // Render button for selected funding source
+            try {
+                await currentButtonInstance.render('#paymentButtonContainer');
+            } catch (err) {
+                console.error('Error rendering button:', err);
+                currentButtonInstance = null;
+                container.innerHTML = `<div style="color:#ef4444;text-align:center;">Failed to load payment button</div>`;
+            }
+        }
+    </script>
+</body>
+
+</html>

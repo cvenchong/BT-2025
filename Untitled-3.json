@@ -1,0 +1,149 @@
+{
+  "input": {
+    "clientMutationId": "",
+    "paymentMethodId": "",
+    "options": {
+      "externalVault": {
+        "status": "",
+        "verifyingNetworkTransactionId": ""
+      },
+      "billingAddress": {
+        "company": "",
+        "streetAddress": "",
+        "addressLine1": "",
+        "extendedAddress": "",
+        "addressLine2": "",
+        "firstName": "",
+        "lastName": "",
+        "locality": "",
+        "adminArea2": "",
+        "region": "",
+        "adminArea1": "",
+        "postalCode": "",
+        "countryCode": "",
+        "countryCodeAlpha3": "",
+        "countryCodeAlpha2": "",
+        "countryCodeNumeric": "",
+        "countryName": ""
+      },
+      "accountType": "",
+      "tokenizedCvv": "",
+      "fraudTools": {
+        "skipCvv": true,
+        "skipAvs": true,
+        "skipAdvancedFraudChecking": true
+      },
+      "threeDSecureAuthentication": {
+        "authenticationId": "",
+        "passThrough": {
+          "eciFlag": "",
+          "cavv": "",
+          "xId": "",
+          "threeDSecureServerTransactionId": "",
+          "version": "",
+          "authenticationResponse": "",
+          "directoryServerResponse": "",
+          "cavvAlgorithm": "",
+          "directoryServerTransactionId": ""
+        },
+        "required": true
+      },
+      "scaExemption": "",
+      "installmentCount": 0
+    },
+    "transaction": {
+      "amount": "",
+      "merchantAccountId": "",
+      "orderId": "",
+      "exchangeRateQuoteId": "",
+      "purchaseOrderNumber": "",
+      "riskData": {
+        "customerBrowser": "",
+        "customerIp": "",
+        "deviceData": ""
+      },
+      "customFields": {
+        "name": "",
+        "value": ""
+      },
+      "descriptor": {
+        "name": "",
+        "phone": "",
+        "url": ""
+      },
+      "recurring": "",
+      "paymentInitiator": "",
+      "channel": "",
+      "customerId": "",
+      "shipping": {
+        "shippingAddress": {
+          "company": "",
+          "streetAddress": "",
+          "addressLine1": "",
+          "extendedAddress": "",
+          "addressLine2": "",
+          "firstName": "",
+          "lastName": "",
+          "locality": "",
+          "adminArea2": "",
+          "region": "",
+          "adminArea1": "",
+          "postalCode": "",
+          "countryCode": "",
+          "countryCodeAlpha3": "",
+          "countryCodeAlpha2": "",
+          "countryCodeNumeric": "",
+          "countryName": ""
+        },
+        "shippingAmount": "",
+        "shipsFromPostalCode": ""
+      },
+      "tax": {
+        "taxAmount": "",
+        "taxExempt": true
+      },
+      "discountAmount": "",
+      "lineItems": {
+        "name": "",
+        "kind": "",
+        "quantity": "",
+        "unitAmount": "",
+        "totalAmount": "",
+        "unitTaxAmount": "",
+        "taxAmount": "",
+        "discountAmount": "",
+        "unitOfMeasure": "",
+        "productCode": "",
+        "commodityCode": "",
+        "description": "",
+        "url": "",
+        "itemType": "",
+        "imageUrl": ""
+      },
+      "threeDSecurePassThrough": {
+        "eciFlag": "",
+        "cavv": "",
+        "xId": "",
+        "threeDSecureServerTransactionId": "",
+        "version": "",
+        "authenticationResponse": "",
+        "directoryServerResponse": "",
+        "cavvAlgorithm": "",
+        "directoryServerTransactionId": ""
+      },
+      "vaultPaymentMethodAfterTransacting": {
+        "when": ""
+      },
+      "customerDetails": {
+        "email": "",
+        "phoneNumber": ""
+      },
+      "processingOverrides": {
+        "customerEmail": "",
+        "customerFirstName": "",
+        "customerLastName": "",
+        "customerTaxIdentifier": ""
+      }
+    }
+  }
+}
